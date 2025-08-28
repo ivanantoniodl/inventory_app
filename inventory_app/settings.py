@@ -74,8 +74,15 @@ WSGI_APPLICATION = 'inventory_app.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',  # Or 'django.db.backends.postgresql', 'django.db.backends.sqlite3', etc. 
+        'NAME': 'inventory_db',
+        'USER': 'inventory_user',
+        'PASSWORD': 'dLiNmGL5v@aT!',
+        'HOST': 'localhost',
+        'PORT': '3306',  # Default MySQL port
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 
