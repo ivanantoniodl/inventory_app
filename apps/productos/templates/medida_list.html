@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}   
+
+
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-lg-12 grid-margin stretch-card">
+              <div class="card">
+                <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+                  <h4 class="card-title">Listado de categorías</h4>
+                  <div class="row mb-3">
+                    <div class="col-12 d-flex justify-content-end">
+                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearMedidaModal">
+                        Crear Medida
+                      </button>
+                    </div>
+                  </div>
+                  <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>
+                            Medida
+                          </th>                          
+                          <th>
+                            Acciones
+                          </th>                          
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for medida in medidas %}
+                        <tr>                          
+                          <td>
+                            {{ medida.medida }}
+                          </td>                          
+                          <td>
+                            <div class="template-demo">                              
+                              <button type="button" class="btn btn-dark btn-icon-text btn-sm">
+                                Editar                               
+                              </button>
+                              <button type="button" class="btn btn-danger btn-icon-text btn-sm">                                                                                   
+                                Eliminar
+                              </button>
+                           </div>
+                          </td>                          
+                        </tr>  
+                        {% endfor %}                      
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>    
+           
+
+            <!-- Modal -->
+            <div class="modal fade" id="crearMedidaModal" tabindex="-1" role="dialog" aria-labelledby="crearMedidaLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <form method="post" action="{% url 'productos:medida-create' %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="crearMedidaLabel">Crear Medida</h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="form-group">
+                        <label for="categoria">Nombre de la medida</label>
+                        <input type="text" class="form-control" id="medida" name="medida" required>
+                      </div>                      
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+{% endblock %}
+    

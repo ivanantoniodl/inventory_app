@@ -11,8 +11,11 @@
   <link rel="stylesheet" href="{% static 'home/vendors/feather/feather.css'%}">
   <link rel="stylesheet" href="{% static 'home/vendors/ti-icons/css/themify-icons.css'%}">
   <link rel="stylesheet" href="{% static 'home/vendors/css/vendor.bundle.base.css'%}">
+  <link rel="stylesheet" href="{% static 'home/vendors/ti-icons/css/themify-icons.css'%}">
+  <link rel="stylesheet" href="{% static 'home/vendors/css/vendor.bundle.base.css'%}">
   <!-- endinject -->
   <!-- Plugin css for this page -->
+  <link rel="stylesheet" href="{% static 'home/vendors/mdi/css/materialdesignicons.min.css'%}">
   <link rel="stylesheet" href="{% static 'home/vendors/datatables.net-bs4/dataTables.bootstrap4.css'%}">
   <link rel="stylesheet" href="{% static 'home/vendors/ti-icons/css/themify-icons.css'%}">
   <link rel="stylesheet" type="text/css" href="{% static 'home/js/select.dataTables.min.css'%}">
@@ -297,7 +300,7 @@
       <nav class="sidebar sidebar-offcanvas" id="sidebar">
         <ul class="nav">
           <li class="nav-item">
-            <a class="nav-link" href="index.html">
+            <a class="nav-link" href="{% url 'home:homeapp' %}">
               <i class="icon-grid menu-icon"></i>
               <span class="menu-title">Dashboard</span>
             </a>
@@ -311,9 +314,9 @@
             <div class="collapse" id="tables">
               <ul class="nav flex-column sub-menu">
                 <li class="nav-item"> <a class="nav-link" href="pages/tables/basic-table.html">Basic table</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'products:categoria-list' %}">Categorías</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'productos:medida-list' %}">Medidas</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'productos:categoria-list' %}">Categorías</a></li>
                 <li class="nav-item"> <a class="nav-link" href="pages/tables/basic-table.html">Productos</a></li>
-                <li class="nav-item"> <a class="nav-link" href="pages/tables/basic-table.html">Medidas</a></li>
               </ul>
             </div>
           </li>        
