@@ -11,7 +11,7 @@
                   <h4 class="card-title">Listado de categorías</h4>
                   <div class="row mb-3">
                     <div class="col-12 d-flex justify-content-end">
-                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearMedidaModal">
+                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearMedidaModal" data-id="1">
                         Crear Medida
                       </button>
                     </div>
@@ -35,7 +35,7 @@
                           </td>                          
                           <td>
                             <div class="template-demo">                              
-                              <button type="button" class="btn btn-dark btn-icon-text btn-sm">
+                              <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearMedidaModal" data-id="2" data-url="{% url 'productos:medida-detail' medida.id %}" data-urlupdate="{% url 'productos:medida-update' medida.id %}">
                                 Editar                               
                               </button>
                               <button type="button" class="btn btn-danger btn-icon-text btn-sm">                                                                                   
@@ -57,7 +57,7 @@
             <div class="modal fade" id="crearMedidaModal" tabindex="-1" role="dialog" aria-labelledby="crearMedidaLabel" aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
-                  <form method="post" action="{% url 'productos:medida-create' %}">
+                  <form method="post" action="">
                     {% csrf_token %}
                     <div class="modal-header">
                       <h5 class="modal-title" id="crearMedidaLabel">Crear Medida</h5>
@@ -67,10 +67,10 @@
                     </div>
                     <div class="modal-body">
                       <div class="form-group">
-                        <label for="categoria">Nombre de la medida</label>
-                        <input type="text" class="form-control" id="medida" name="medida" required>
-                      </div>                      
-                    </div>
+                        {{ form.medida.label_tag }}                        
+                        {{ form.medida }}
+                      </div>   
+                    </div>                     
                     <div class="modal-footer">
                       <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                       <button type="submit" class="btn btn-primary">Guardar</button>
@@ -79,5 +79,37 @@
                 </div>
               </div>
             </div>
+{% endblock %}
+{% block scripts %}
+            <script>
+              $(document).ready(function() {
+              $('#crearMedidaModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget) // Botón que abre el modal
+                var recipient = button.data('id')
+                var url = button.data('url')
+                var urlUpdate = button.data('urlupdate')                
+                var modal = $(this)                
+                
+
+                if(recipient == 1){
+                  modal.find('.modal-title').text('Crear medida')
+                  modal.find('form').attr('action', "{% url 'productos:medida-create' %}")
+                  modal.find('#id_medida').val('')
+                } else if(recipient == 2){
+                  modal.find('.modal-title').text('Editar medida')
+                  modal.find('form').attr('action', urlUpdate)
+ 
+                  // Traer datos existentes vía AJAX
+                  $.ajax({
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                      modal.find('#id_medida').val(data.medida)                      
+                    }
+                  })
+                }
+              })
+            })
+            </script>
 {% endblock %}
     

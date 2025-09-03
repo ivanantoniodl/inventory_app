@@ -10,7 +10,7 @@
                   <h4 class="card-title">Listado de categorías</h4>
                   <div class="row mb-3">
                     <div class="col-12 d-flex justify-content-end">
-                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearCategoriaModal">
+                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearCategoriaModal" data-id="1">
                         Crear Categoría
                       </button>
                     </div>
@@ -45,12 +45,12 @@
                           </td>
                           <td>
                             <div class="template-demo">                              
-                              <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearCategoriaModal" data-url="{% url 'productos:categoria-detail' categoria.id %} ">
+                              <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearCategoriaModal" data-id="2" data-url="{% url 'productos:categoria-detail' categoria.id %}" data-urlupdate="{% url 'productos:categoria-update' categoria.id %}">
                                 Editar                               
                               </button>
                               <button type="button" class="btn btn-danger btn-icon-text btn-sm">                                                                                   
                                 Eliminar
-                              </button>
+                              </button>                              
                             </div>
                           </td>                          
                         </tr>  
@@ -67,7 +67,7 @@
             <div class="modal fade" id="crearCategoriaModal" tabindex="-1" role="dialog" aria-labelledby="crearCategoriaLabel" aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
-                  <form method="post" action="{% url 'productos:categoria-create' %}">
+                  <form method="post" action="">
                     {% csrf_token %}
                     <div class="modal-header">
                       <h5 class="modal-title" id="crearCategoriaLabel">Crear Categoría</h5>
@@ -77,8 +77,12 @@
                     </div>
                     <div class="modal-body">
                       <div class="form-group">
-                        <label for="categoria">Nombre de la categoría</label>
-                        <input type="text" class="form-control" id="categoria" name="categoria" required>
+                        {{ form.categoria.label_tag }}                        
+                        {{ form.categoria }}
+                      </div>                      
+                      <div class="form-check" id="status"> 
+                        {{ form.habilitado.label_tag }}                       
+                        {{ form.habilitado }}                         
                       </div>                      
                     </div>
                     <div class="modal-footer">
@@ -88,6 +92,40 @@
                   </form>
                 </div>
               </div>
-            </div>
+            </div>          
 {% endblock %}
     
+{% block scripts %}
+            <script>
+              $(document).ready(function() {
+              $('#crearCategoriaModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget) // Botón que abre el modal
+                var recipient = button.data('id')
+                var url = button.data('url')
+                var urlUpdate = button.data('urlupdate')                
+                var modal = $(this)                
+                
+
+                if(recipient == 1){
+                  modal.find('.modal-title').text('Crear Categoría')
+                  modal.find('form').attr('action', "{% url 'productos:categoria-create' %}")
+                  modal.find('#id_categoria').val('')
+                } else if(recipient == 2){
+                  modal.find('.modal-title').text('Editar Categoría')
+                  modal.find('form').attr('action', urlUpdate)
+                  
+
+                  // Traer datos existentes vía AJAX
+                  $.ajax({
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                      modal.find('#id_categoria').val(data.categoria)
+                      modal.find('#id_habilitado').prop('checked', data.habilitado)
+                    }
+                  })
+                }
+              })
+            })
+            </script>
+{% endblock %}
