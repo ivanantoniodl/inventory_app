@@ -5,15 +5,22 @@ class Categoria(models.Model):
     categoria = models.CharField(max_length=45, null=True, blank=True)
     habilitado = models.BooleanField(null=True)
     es_producto = models.BooleanField(null=True)
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
 class Medida(models.Model):
     medida = models.CharField(max_length=45, null=True, blank=True)
+    habilitado = models.BooleanField(null=True)
     es_producto = models.BooleanField(null=True)
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
 class Derivado(models.Model):
     derivado = models.CharField(max_length=45, null=True, blank=True)
     medida = models.ForeignKey(Medida, on_delete=models.PROTECT)
     factorconversion = models.FloatField(null=True, blank=True)
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
 class Proveedor(models.Model):
     nombre = models.CharField(max_length=255, null=True, blank=True)

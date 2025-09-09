@@ -44,13 +44,19 @@
                             {% endif %}
                           </td>
                           <td>
-                            <div class="template-demo">                              
-                              <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearCategoriaModal" data-id="2" data-url="{% url 'productos:categoria-detail' categoria.id %}" data-urlupdate="{% url 'productos:categoria-update' categoria.id %}">
-                                Editar                               
-                              </button>
-                              <button type="button" class="btn btn-danger btn-icon-text btn-sm">                                                                                   
-                                Eliminar
-                              </button>                              
+                            <div class="template-demo">
+                                <form action="" method="post" style="display:inline;">
+                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearCategoriaModal" data-id="2" data-url="{% url 'productos:categoria-detail' categoria.id %}" data-urlupdate="{% url 'productos:categoria-update' categoria.id %}">
+                                  Editar                               
+                                  </button>                              
+                                </form>                                 
+                              
+                                <form action="{% url 'productos:categoria-delete' categoria.id %}" method="post" style="display:inline;">
+                                  {% csrf_token %}
+                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar la categoría?');">
+                                  Eliminar
+                                  </button>
+                                </form>                            
                             </div>
                           </td>                          
                         </tr>  
@@ -60,7 +66,45 @@
                   </div>
                 </div>
               </div>
-            </div>         
+            </div>   
+
+            <div class="container mt-5">
+              <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Anterior</span>
+                    </li>
+                  {% endif %}
+
+                  {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Siguiente</span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            </div>       
             
 
             <!-- Modal -->
@@ -81,8 +125,8 @@
                         {{ form.categoria }}
                       </div>                      
                       <div class="form-check" id="status"> 
-                        {{ form.habilitado.label_tag }}                       
-                        {{ form.habilitado }}                         
+                        {{ form.habilitado }}   
+                        {{ form.habilitado.label_tag }}                                             
                       </div>                      
                     </div>
                     <div class="modal-footer">

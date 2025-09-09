@@ -8,7 +8,7 @@
             <div class="col-lg-12 grid-margin stretch-card">
               <div class="card">
                 <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
-                  <h4 class="card-title">Listado de categorías</h4>
+                  <h4 class="card-title">Listado de medidas</h4>
                   <div class="row mb-3">
                     <div class="col-12 d-flex justify-content-end">
                       <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearMedidaModal" data-id="1">
@@ -21,7 +21,10 @@
                         <tr>
                           <th>
                             Medida
-                          </th>                          
+                          </th>   
+                          <th>
+                            Status
+                          </th>                         
                           <th>
                             Acciones
                           </th>                          
@@ -32,15 +35,36 @@
                         <tr>                          
                           <td>
                             {{ medida.medida }}
-                          </td>                          
+                          </td>        
+                          <td>                            
+                              {% if medida.habilitado %}
+                                <i class="mdi mdi-check"></i>
+                              {% else %}
+                                <i class=" mdi mdi-close "></i> 
+                              {% endif %}
+                          </td>                  
                           <td>
-                            <div class="template-demo">                              
-                              <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearMedidaModal" data-id="2" data-url="{% url 'productos:medida-detail' medida.id %}" data-urlupdate="{% url 'productos:medida-update' medida.id %}">
-                                Editar                               
-                              </button>
-                              <button type="button" class="btn btn-danger btn-icon-text btn-sm">                                                                                   
-                                Eliminar
-                              </button>
+                            <div class="template-demo">
+                                <form action="" method="post" style="display:inline;">
+                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearMedidaModal" data-id="2" data-url="{% url 'productos:medida-detail' medida.id %}" data-urlupdate="{% url 'productos:medida-update' medida.id %}">
+                                  Editar                               
+                                  </button>                              
+                                </form>                                 
+                              
+                                <form action="{% url 'productos:medida-delete' medida.id %}" method="post" style="display:inline;">
+                                  {% csrf_token %}
+                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar la medida?');">
+                                  Eliminar
+                                  </button>
+                                </form> 
+                                
+                                 <form action="" method="post" style="display:inline;">
+                                  {% csrf_token %}
+                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#verDerivadosModal"  data-url="{% url 'productos:medida-derivados' medida.id %}" data-medida-id="{{ medida.id }}">
+                                  Ver derivados
+                                  </button>
+                                </form> 
+                            </div>                             
                            </div>
                           </td>                          
                         </tr>  
@@ -52,8 +76,45 @@
               </div>
             </div>    
            
+            <div class="container mt-5">
+              <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Anterior</span>
+                    </li>
+                  {% endif %}
 
-            <!-- Modal -->
+                  {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Siguiente</span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            </div>   
+
+            <!-- Modal Editar/Crear -->
             <div class="modal fade" id="crearMedidaModal" tabindex="-1" role="dialog" aria-labelledby="crearMedidaLabel" aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
@@ -70,6 +131,10 @@
                         {{ form.medida.label_tag }}                        
                         {{ form.medida }}
                       </div>   
+                      <div class="form-check" id="status">                                             
+                        {{ form.habilitado }}              
+                        {{ form.habilitado.label_tag }}              
+                      </div>     
                     </div>                     
                     <div class="modal-footer">
                       <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
@@ -79,6 +144,60 @@
                 </div>
               </div>
             </div>
+
+            <!-- Modal Ver Medidas -->
+            <div class="modal fade" id="verDerivadosModal" tabindex="-1" role="dialog" aria-labelledby="verDerivadosLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="container-fluid">
+                    <div class="row">
+                      <div class="col-lg-12 grid-margin stretch-card">
+                        <div class="card">
+                          <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+                            <h4 class="card-title">Listado de derivados</h4>
+                            <div class="row mb-3">
+                              <div class="col-12 d-flex justify-content-end">
+                                <button type="button" class="btn btn-primary btn-sm" id="btn-mostrar-form" data-medida-id=medida.id>
+                                  Crear derivado
+                                </button>
+                              </div>
+                            </div>
+                            <div class="table-responsive" id="derivados-lista">
+                              <table class="table table-striped">
+                                <thead>
+                                  <tr>
+                                    <th>
+                                      Derivado
+                                    </th>
+                                    <th>
+                                      Factor conversión
+                                    </th>
+                                    <th>
+                                      Acciones
+                                    </th>                          
+                                  </tr>
+                                </thead>
+                                <tbody id="tablaDerivados">                                                       
+                                </tbody>
+                              </table>
+                            </div>
+                            <!-- Sección de formulario -->
+                              <div id="derivados-form" style="display:none;">
+                                <form id="form-nuevo-derivado" method="post">
+                                  {% csrf_token %}
+                                  {{ form.as_p }}
+                                  <button type="submit" class="btn btn-success">Guardar</button>
+                                  <button type="button" class="btn btn-secondary" id="btn-volver">Volver</button>
+                                </form>
+                              </div>
+                          </div>
+                        </div>  
+                      </div>
+                    </div>
+                  </div>    
+                </div>
+              </div>
+            </div>          
 {% endblock %}
 {% block scripts %}
             <script>
@@ -104,12 +223,89 @@
                     url: url,
                     method: 'GET',
                     success: function(data) {
-                      modal.find('#id_medida').val(data.medida)                      
+                      modal.find('#id_medida').val(data.medida)   
+                      modal.find('#id_habilitado').prop('checked', data.habilitado)                   
                     }
                   })
                 }
               })
             })
+
+            $('#verDerivadosModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget); // Botón que abrió el modal
+                var url = button.data('url');
+
+                console.log("URL para obtener derivados:", url); // Verifica que la URL sea correcta
+                console.log("Botón data-medida-id:", button.data('medida-id')); // Verifica que el ID sea correcto
+                $.get(url, function(data) {
+                    // Nombre de la medida
+                    $('#medidaNombre').text(data.medida);
+                    $('#verDerivadosModal').data('medida-id', button.data('medida-id')); // Guarda el ID de la medida en el modal
+
+                    // Limpiar tabla
+                    var tbody = $('#tablaDerivados');
+                    tbody.empty();
+
+                    // Llenar tabla
+                    data.derivados.forEach(function(d) {
+                        tbody.append(
+                            `<tr>                                
+                                <td>${d.derivado}</td>
+                                <td>${d.factorconversion}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-icon-text btn-sm" onclick="if(confirm('¿Estás seguro de eliminar el derivado?')) { /* Aquí iría la lógica para eliminar el derivado */ }">
+                                        Eliminar
+                                    </button>
+                                </td>
+                            </tr>`
+                        );
+                    });
+                });
+            });
+
+            // Mostrar formulario
+            $(document).on("click", "#btn-mostrar-form", function() {
+              let medidaId = $("#verDerivadosModal").data("medida-id");
+              
+              let urlForm = "{% url 'productos:crear-derivado' pk=0 %}".replace("0", medidaId);
+
+              console.log("Medida ID para nuevo derivado:", medidaId); // Verifica que el ID sea correcto
+
+              $.get(urlForm, function(data) {
+                $("#derivados-form").html(data);
+                $("#derivados-lista").hide();
+                $("#derivados-form").show();
+              });
+            });
+
+            $(document).on("submit", "#form-nuevo-derivado", function(e) {
+                e.preventDefault();
+                let form = $(this);
+                let medidaId = form.data("medida");
+                let urlCrearDerivado = "{% url 'productos:crear-derivado' pk=0 %}";
+                let url = urlCrearDerivado.replace("0", medidaId);
+                console.log("URL para crear derivado",url);
+
+                $.post(url, form.serialize(), function(resp) {
+                  if (resp.success) {
+                    console.log("Derivado creado:", resp.derivado);             
+                    $("#derivados-form").hide();
+                    $("#derivados-lista").show();
+                  } else {
+                    // vuelve a cargar errores si falla
+                    console.log("Derivado NO creado:", resp.derivado);   
+                    $("#derivados-form").html(resp);
+                  }
+                });
+              });
+
+            // Volver a la lista
+            $(document).on("click", "#btn-volver", function(){
+              $("#derivados-form").hide();
+              $("#derivados-lista").show();
+            });
+
+            
             </script>
 {% endblock %}
     
