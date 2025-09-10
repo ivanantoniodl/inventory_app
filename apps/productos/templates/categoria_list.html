@@ -111,7 +111,7 @@
             <div class="modal fade" id="crearCategoriaModal" tabindex="-1" role="dialog" aria-labelledby="crearCategoriaLabel" aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
-                  <form method="post" action="">
+                  <form id="categoriaForm" method="post" action="">
                     {% csrf_token %}
                     <div class="modal-header">
                       <h5 class="modal-title" id="crearCategoriaLabel">Crear Categoría</h5>
@@ -170,6 +170,43 @@
                   })
                 }
               })
+
+              // Handle form submission with AJAX
+              $('#categoriaForm').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var url = form.attr('action');
+                var formData = form.serialize();
+                
+                $.ajax({
+                  url: url,
+                  type: 'POST',
+                  data: formData,
+                  headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  success: function(response) {
+                    console.log('AJAX Response:', response);
+                    if (response.success) {
+                      // Close modal
+                      $('#crearCategoriaModal').modal('hide');
+                      // Reload the page to show updated list
+                      setTimeout(function() {
+                        location.reload();
+                      }, 50);
+                    } else {
+                      // Handle form errors
+                      alert('Error al guardar la categoría: ' + JSON.stringify(response.errors));
+                    }
+                  },
+                  error: function(xhr, status, error) {
+                    // Handle errors if needed
+                    console.error('Error submitting form:', error);
+                    alert('Error al guardar la categoría. Por favor, inténtelo de nuevo.');
+                  }
+                });
+              });
             })
+
             </script>
 {% endblock %}

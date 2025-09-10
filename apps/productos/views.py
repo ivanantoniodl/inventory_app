@@ -32,18 +32,47 @@ class CategoriaCreateView(CreateView):
     form_class = CategoriaForm
     template_name = 'categoria_form.html'  
     success_url = reverse_lazy('productos:categoria-list')  
+    
     def form_valid(self, form):
         # Modifica el dato antes de guardar
         form.instance.habilitado = 1  
         form.instance.es_producto = 1
         form.instance.eliminado = 0  
-        return super().form_valid(form)
+        
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Categoría creada exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
     
 class CategoriaUpdateView(UpdateView):
     model = Categoria
     form_class = CategoriaForm
     template_name = 'categoria_form.html'  
     success_url = reverse_lazy('productos:categoria-list')
+    
+    def form_valid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Categoría actualizada exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
     
 
 def categoria_detail(request, pk):
@@ -90,13 +119,41 @@ class MedidaCreateView(CreateView):
         form.instance.es_producto=1
         form.instance.habilitado=1
         form.instance.eliminado=0
-        return super().form_valid(form)
+        
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Medida creada exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
     
 class MedidaUpdateView(UpdateView):
     model = Medida
     form_class = MedidaForm
     template_name = 'medida_form.html'  # Not used for modal, but required
     success_url = reverse_lazy('productos:medida-list')  # Change to your list view
+    
+    def form_valid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Medida actualizada exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
 
 def medida_detail(request, pk):
     medida = Medida.objects.get(pk=pk)
