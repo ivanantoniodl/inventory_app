@@ -194,6 +194,9 @@
                               <div id="derivados-form" style="display:none;">
                                 <form id="form-nuevo-derivado" method="post">
                                   {% csrf_token %}
+                                  <script>
+                                    const csrfToken = "{{ csrf_token }}";
+                                  </script>
                                   {{ form.as_p }}
                                   <button type="submit" class="btn btn-success">Guardar</button>
                                   <button type="button" class="btn btn-secondary" id="btn-volver">Volver</button>
@@ -206,8 +209,9 @@
                   </div>
                 </div>
               </div>
-            </div>          
-          </div>
+            </div>     
+          </div>     
+            
 {% endblock %}
 {% block scripts %}
             <script>
@@ -308,8 +312,8 @@
                                 <td>${d.derivado}</td>
                                 <td>${d.factorconversion}</td>
                                 <td>
-                                    <button class="btn btn-danger btn-icon-text btn-sm" onclick="if(confirm('¿Estás seguro de eliminar el derivado?')) { /* Aquí iría la lógica para eliminar el derivado */ }">
-                                        Eliminar
+                                    <button class="btn btn-danger btn-sm" id="btn-delete-derivado" data-id="${d.id}">
+                                      Eliminar
                                     </button>
                                 </td>
                             </tr>`
@@ -329,7 +333,6 @@
 
               // Change title to form mode
               $('#verDerivadosModal .modal-title').text('Crear derivado para ' + medidaNombre);
-              $('#verDerivadosModal .card-title').text('Crear derivado para ' + medidaNombre);
 
               $.get(urlForm, function(data) {
                 $("#derivados-form").html(data);
@@ -399,8 +402,8 @@
                             <td>${d.derivado}</td>
                             <td>${d.factorconversion}</td>
                             <td>
-                                <button class="btn btn-danger btn-icon-text btn-sm" onclick="if(confirm('¿Estás seguro de eliminar el derivado?')) { /* Aquí iría la lógica para eliminar el derivado */ }">
-                                    Eliminar
+                                <button class="btn btn-danger btn-sm" id="btn-delete-derivado" data-id="${d.id}">
+                                  Eliminar
                                 </button>
                             </td>
                         </tr>`
@@ -412,6 +415,33 @@
                 console.error("Error refreshing derivados list");
               });
             }
+
+            $(document).on("click", "#btn-delete-derivado", function() {
+                let id = $(this).data("id");
+                let url = "{% url 'productos:delete-derivado' pk=0 %}".replace("0", id);
+                console.log("URL para eliminar derivado:", url);
+
+                if (confirm("¿Estás seguro de eliminar la medida derivada?")) {
+                    $.ajax({
+                        url: url,
+                        type: "POST",
+                        headers: { "X-CSRFToken": csrfToken },
+                        success: function(resp) {
+                            if (resp.success) {
+                                // ✅ quitar la fila de la tabla sin recargar
+                                console.log("Derivado eliminado:", id);
+                                $(`button[data-id=${id}]`).closest("tr").remove();
+                            } else {
+                                console.log("Error al eliminar el derivado:", id);
+                                alert("Error al eliminar el derivado.");
+                            }
+                        },
+                        error: function() {
+                            alert("Ocurrió un error al intentar eliminar.");
+                        }
+                    });
+                }
+            });
             
             </script>
 {% endblock %}

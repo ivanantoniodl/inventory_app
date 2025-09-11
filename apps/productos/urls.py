@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from .views import CategoriaListView, CategoriaCreateView,categoria_detail, CategoriaUpdateView, categoria_delete
 from .views import MedidaCreateView, medida_detail, MedidaListView, MedidaUpdateView, medida_delete
-from .views import get_derivados,DerivadoCreateView, DerivadoListView
+from .views import get_derivados,DerivadoCreateView, DerivadoListView, DerivadosDeleteView
 app_name = 'productos'
 
 urlpatterns = [
@@ -18,6 +18,6 @@ urlpatterns = [
     path('medidas/delete/<int:pk>/', medida_delete, name='medida-delete'),
     path('medidas/<int:pk>/derivados/', get_derivados, name='medida-derivados'),
     path('medida/<int:pk>/derivados/crear/', DerivadoCreateView.as_view(), name='crear-derivado'),
-    
+    path('derivados/delete/<int:pk>/', DerivadosDeleteView.as_view(), name='delete-derivado'),
     # Add other product-related URL patterns here
 ]

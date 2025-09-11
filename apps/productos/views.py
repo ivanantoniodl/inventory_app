@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.views.generic import ListView, CreateView, UpdateView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
 from .models import Categoria, Medida, Derivado
@@ -214,3 +214,9 @@ class DerivadoCreateView(CreateView):
     def form_invalid(self, form):
         logger.error("Errores al crear derivado: %s", form.errors)
         return JsonResponse({"success": False, "errors": form.errors})
+
+class DerivadosDeleteView(DeleteView):
+    def post(self, request, pk, *args, **kwargs):
+        derivado = get_object_or_404(Derivado, pk=pk)
+        derivado.delete()
+        return JsonResponse({"success": True})
