@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
-from .models import Categoria, Medida, Derivado
-from .forms import CategoriaForm, MedidaForm, DerivadoForm
+from .models import Categoria, Medida, Derivado, Proveedor
+from .forms import CategoriaForm, MedidaForm, DerivadoForm, ProveedorForm
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.db.models import Q
@@ -220,3 +220,87 @@ class DerivadosDeleteView(DeleteView):
         derivado = get_object_or_404(Derivado, pk=pk)
         derivado.delete()
         return JsonResponse({"success": True})
+    
+
+class ProveedorListView(ListView):
+    model = Proveedor
+    template_name = 'proveedores.html'
+    context_object_name = 'proveedores'
+    paginate_by = 10  # Número de proveedores por página
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = ProveedorForm()  # Añade el formulario al contexto
+        return context  
+    
+    def get_queryset(self):        
+        return Proveedor.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+    
+class ProveedorCreateView(CreateView):
+    model = Proveedor
+    form_class = ProveedorForm
+    template_name = 'proveedor_form.html'  
+    success_url = reverse_lazy('productos:proveedor-list')  
+    
+    def form_valid(self, form):
+        # Modifica el dato antes de guardar
+        form.instance.habilitado = 1  
+        form.instance.es_producto = 1
+        form.instance.eliminado = 0  
+        form.instance.saldo = 0.0
+        
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Proveedor creado exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
+        
+class ProveedorUpdateView(UpdateView):
+    model = Proveedor
+    form_class = ProveedorForm
+    template_name = 'proveedor_form.html'  
+    success_url = reverse_lazy('productos:proveedor-list')
+    
+    def form_valid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Proveedor actualizado exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
+        
+def proveedor_detail(request, pk):
+    proveedor = Proveedor.objects.get(pk=pk)
+    data={
+        "id": proveedor.id,
+        'nombre': proveedor.nombre,
+        'contacto': proveedor.contacto,
+        'direccion': proveedor.direccion,
+        'nit': proveedor.nit,
+        'observaciones': proveedor.observaciones,
+        'habilitado': proveedor.habilitado,
+        'es_producto': proveedor.es_producto,        
+    }
+    return JsonResponse(data)
+
+def proveedor_delete(request, pk):
+    proveedor = Proveedor.objects.get(pk=pk)
+    proveedor.eliminado=1
+    proveedor.eliminado_ts=timezone.now()
+    proveedor.save()
+    return redirect('productos:proveedor-list')

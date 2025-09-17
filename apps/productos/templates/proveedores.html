@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block content %} 
+
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-lg-12 grid-margin stretch-card">
+              <div class="card">
+                <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+                  <h4 class="card-title">Listado de proveedores</h4>
+                  <div class="row mb-3">
+                    <div class="col-12 d-flex justify-content-end">
+                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearProveedorModal" data-id="1">
+                        Crear proveedor
+                      </button>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>
+                            Nombre
+                          </th>
+                          <th>
+                            Dirección
+                          </th>
+                          <th>
+                            Nit
+                          </th>
+                          <th>
+                            Status
+                          </th>
+                          <th>
+                            Acciones
+                          </th>                          
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for proveedor in proveedores %}
+                        <tr>                          
+                          <td>
+                            {{ proveedor.nombre }}
+                          </td>
+                          <td>
+                            {{ proveedor.direccion }}
+                          </td>
+                          <td>
+                            {{ proveedor.nit }}
+                          </td>
+                          <td>                            
+                            {% if proveedor.habilitado %}
+                              <i class="mdi mdi-check"></i>
+                            {% else %}
+                              <i class=" mdi mdi-close "></i> 
+                            {% endif %}
+                          </td>
+                          <td>
+                            <div class="template-demo">
+                                <form action="" method="post" style="display:inline;">
+                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearProveedorModal" data-id="2" data-url="{% url 'productos:proveedor-detail' proveedor.id %}" data-urlupdate="{% url 'productos:proveedor-update' proveedor.id %}">
+                                  Editar                               
+                                  </button>                              
+                                </form>                                 
+                              
+                                <form action="{% url 'productos:proveedor-delete' proveedor.id %}" method="post" style="display:inline;">
+                                  {% csrf_token %}
+                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar el proveedor?');">
+                                  Eliminar
+                                  </button>
+                                </form>                            
+                            </div>
+                          </td>                          
+                        </tr>  
+                        {% endfor %}                      
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>   
+
+            <div class="container mt-5">
+              <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Anterior</span>
+                    </li>
+                  {% endif %}
+
+                  {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Siguiente</span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            </div>       
+            
+
+            <!-- Modal -->
+            <div class="modal fade" id="crearProveedorModal" tabindex="-1" role="dialog" aria-labelledby="crearProveedorLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <form id="proveedorForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="crearProveedorLabel">Crear proveedor</h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="form-group">
+                        {{ form.nombre.label_tag }}                        
+                        {{ form.nombre }}
+                      </div>  
+                      <div class="form-group">
+                        {{ form.contacto.label_tag }}                        
+                        {{ form.contacto }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.direccion.label_tag }}                        
+                        {{ form.direccion }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.nit.label_tag }}                        
+                        {{ form.nit }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.observaciones.label_tag }}                        
+                        {{ form.observaciones }}
+                      </div>
+                      <div class="form-check" id="status"> 
+                        {{ form.habilitado }}   
+                        {{ form.habilitado.label_tag }}                                             
+                      </div>                    
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>          
+{% endblock %}
+    
+{% block scripts %}
+            <script>
+              $(document).ready(function() {
+              $('#crearProveedorModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget) // Botón que abre el modal
+                var recipient = button.data('id')
+                var url = button.data('url')
+                var urlUpdate = button.data('urlupdate')                
+                var modal = $(this)                
+                
+                console.log('Recipient:', recipient);
+                console.log('URL:', url);
+                console.log('URL Update:', urlUpdate);  
+
+                if(recipient == 1){
+                  modal.find('.modal-title').text('Crear Proveedor')
+                  modal.find('form').attr('action', "{% url 'productos:proveedor-create' %}")
+                  modal.find('#id_proveedor').val('')
+                } else if(recipient == 2){
+                  modal.find('.modal-title').text('Editar Proveedor')
+                  modal.find('form').attr('action', urlUpdate)
+                  
+
+                  // Traer datos existentes vía AJAX
+                  $.ajax({
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                      modal.find('#id_nombre').val(data.nombre)
+                      modal.find('#id_contacto').val(data.contacto)
+                      modal.find('#id_direccion').val(data.direccion)
+                      modal.find('#id_nit').val(data.nit)
+                      modal.find('#id_observaciones').val(data.observaciones)
+                      modal.find('#id_habilitado').prop('checked', data.habilitado)
+                    }
+                  })
+                }
+              })
+
+              // Handle form submission with AJAX
+              $('#proveedorForm').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var url = form.attr('action');
+                var formData = form.serialize();
+                
+                $.ajax({
+                  url: url,
+                  type: 'POST',
+                  data: formData,
+                  headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  success: function(response) {
+                    console.log('AJAX Response:', response);
+                    if (response.success) {
+                      // Close modal
+                      $('#crearProveedorModal').modal('hide');
+                      // Reload the page to show updated list
+                      setTimeout(function() {
+                        location.reload();
+                      }, 50);
+                    } else {
+                      // Handle form errors
+                      alert('Error al guardar el proveedor ' + JSON.stringify(response.errors));
+                    }
+                  },
+                  error: function(xhr, status, error) {
+                    // Handle errors if needed
+                    console.error('Error submitting form:', error);
+                    alert('Error al guardar el proveedor. Por favor, inténtelo de nuevo.');
+                  }
+                });
+              });
+            })
+
+            </script>
+{% endblock %}

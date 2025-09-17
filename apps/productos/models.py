@@ -31,6 +31,8 @@ class Proveedor(models.Model):
     habilitado = models.BooleanField(null=True)
     es_producto = models.BooleanField(null=True)
     saldo = models.FloatField(null=True, blank=True)
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
 class Producto(models.Model):  # Renombrado de Medicamento
     codigo = models.CharField(max_length=30, null=True, blank=True)
