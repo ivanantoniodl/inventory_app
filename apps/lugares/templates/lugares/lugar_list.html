@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block content %} 
+
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-lg-12 grid-margin stretch-card">
+              <div class="card">
+                <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+                  <h4 class="card-title">Listado de lugares</h4>
+                  <div class="row mb-3">
+                    <div class="col-12 d-flex justify-content-end">
+                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearLugarModal" data-id="1">
+                        Crear Lugar
+                      </button>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>
+                            Nombre
+                          </th>
+                          <th>
+                            Empresa
+                          </th>
+                          <th>
+                            Tipo
+                          </th>
+                          <th>
+                            Dirección
+                          </th>
+                          <th>
+                            Teléfono
+                          </th>
+                          <th>
+                            Acciones
+                          </th>                          
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for lugar in lugares %}
+                        <tr>                          
+                          <td>
+                            {{ lugar.nombre }}
+                          </td>
+                          <td>
+                            {{ lugar.empresa.nombre }}
+                          </td>
+                          <td>
+                            {{ lugar.lugar_tipo.tipo }}
+                          </td>
+                          <td>
+                            {{ lugar.direccion }}
+                          </td>
+                          <td>
+                            {{ lugar.telefono }}
+                          </td>
+                          <td>
+                            <div class="template-demo">
+                                <form action="" method="post" style="display:inline;">
+                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearLugarModal" data-id="2" data-url="{% url 'lugares:lugar-detail' lugar.idLugar %}" data-urlupdate="{% url 'lugares:lugar-update' lugar.idLugar %}">
+                                  Editar                               
+                                  </button>                              
+                                </form>                                 
+                              
+                                <form action="{% url 'lugares:lugar-delete' lugar.idLugar %}" method="post" style="display:inline;">
+                                  {% csrf_token %}
+                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar el lugar?');">
+                                  Eliminar
+                                  </button>
+                                </form>                            
+                            </div>
+                          </td>                          
+                        </tr>  
+                        {% endfor %}                      
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>   
+
+            <div class="container mt-5">
+              <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Anterior</span>
+                    </li>
+                  {% endif %}
+
+                  {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Siguiente</span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            </div>       
+            
+
+            <!-- Modal -->
+            <div class="modal fade" id="crearLugarModal" tabindex="-1" role="dialog" aria-labelledby="crearLugarLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <form id="lugarForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="crearLugarLabel">Crear Lugar</h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="form-group">
+                        {{ form.empresa.label_tag }}                        
+                        {{ form.empresa }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.lugar_tipo.label_tag }}                        
+                        {{ form.lugar_tipo }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.nombre.label_tag }}                        
+                        {{ form.nombre }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.direccion.label_tag }}                        
+                        {{ form.direccion }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.telefono.label_tag }}                        
+                        {{ form.telefono }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.num_placa.label_tag }}                        
+                        {{ form.num_placa }}
+                      </div>                      
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>          
+{% endblock %}
+    
+{% block scripts %}
+            <script>
+              $(document).ready(function() {
+              $('#crearLugarModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget) // Botón que abre el modal
+                var recipient = button.data('id')
+                var url = button.data('url')
+                var urlUpdate = button.data('urlupdate')                
+                var modal = $(this)                
+                
+
+                if(recipient == 1){
+                  modal.find('.modal-title').text('Crear Lugar')
+                  modal.find('form').attr('action', "{% url 'lugares:lugar-create' %}")
+                  modal.find('#id_empresa').val('')
+                  modal.find('#id_lugar_tipo').val('')
+                  modal.find('#id_nombre').val('')
+                  modal.find('#id_direccion').val('')
+                  modal.find('#id_telefono').val('')
+                  modal.find('#id_num_placa').val('')
+                } else if(recipient == 2){
+                  modal.find('.modal-title').text('Editar Lugar')
+                  modal.find('form').attr('action', urlUpdate)
+                  
+
+                  // Traer datos existentes vía AJAX
+                  $.ajax({
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                      modal.find('#id_empresa').val(data.empresa)
+                      modal.find('#id_lugar_tipo').val(data.lugar_tipo)
+                      modal.find('#id_nombre').val(data.nombre)
+                      modal.find('#id_direccion').val(data.direccion)
+                      modal.find('#id_telefono').val(data.telefono)
+                      modal.find('#id_num_placa').val(data.num_placa)
+                    }
+                  })
+                }
+              })
+
+              // Handle form submission with AJAX
+              $('#lugarForm').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var url = form.attr('action');
+                var formData = form.serialize();
+                
+                $.ajax({
+                  url: url,
+                  type: 'POST',
+                  data: formData,
+                  headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  success: function(response) {
+                    console.log('AJAX Response:', response);
+                    if (response.success) {
+                      // Close modal
+                      $('#crearLugarModal').modal('hide');
+                      // Reload the page to show updated list
+                      setTimeout(function() {
+                        location.reload();
+                      }, 50);
+                    } else {
+                      // Handle form errors
+                      alert('Error al guardar el lugar: ' + JSON.stringify(response.errors));
+                    }
+                  },
+                  error: function(xhr, status, error) {
+                    // Handle errors if needed
+                    console.error('Error submitting form:', error);
+                    alert('Error al guardar el lugar. Por favor, inténtelo de nuevo.');
+                  }
+                });
+              });
+            })
+
+            </script>
+{% endblock %}

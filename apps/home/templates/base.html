@@ -319,6 +319,19 @@
                 <li class="nav-item"> <a class="nav-link" href="{% url 'productos:producto-list' %}">Productos</a></li>
               </ul>
             </div>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="collapse" href="#lugares" aria-expanded="false" aria-controls="lugares">
+              <i class="icon-layout menu-icon"></i>
+              <span class="menu-title">Lugares</span>
+              <i class="menu-arrow"></i>
+            </a>
+            <div class="collapse" id="lugares">
+              <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link" href="{% url 'lugares:empresa-list' %}">Empresas</a></li>
+                <li class="nav-item"> <a class="nav-link" href="{% url 'lugares:lugar-list' %}">Lugares</a></li>
+              </ul>
+            </div>
           </li>        
         </ul>
       </nav>
