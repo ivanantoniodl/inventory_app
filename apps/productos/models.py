@@ -7,6 +7,9 @@ class Categoria(models.Model):
     es_producto = models.BooleanField(null=True)
     eliminado_ts = models.DateTimeField(null=True, blank=True)
     eliminado = models.BooleanField(null=True)
+    
+    def __str__(self):
+        return self.categoria or f"Categoría {self.id}"
 
 class Medida(models.Model):
     medida = models.CharField(max_length=45, null=True, blank=True)
@@ -14,6 +17,9 @@ class Medida(models.Model):
     es_producto = models.BooleanField(null=True)
     eliminado_ts = models.DateTimeField(null=True, blank=True)
     eliminado = models.BooleanField(null=True)
+    
+    def __str__(self):
+        return self.medida or f"Medida {self.id}"
 
 class Derivado(models.Model):
     derivado = models.CharField(max_length=45, null=True, blank=True)
@@ -33,6 +39,9 @@ class Proveedor(models.Model):
     saldo = models.FloatField(null=True, blank=True)
     eliminado_ts = models.DateTimeField(null=True, blank=True)
     eliminado = models.BooleanField(null=True)
+    
+    def __str__(self):
+        return self.nombre or f"Proveedor {self.id}"
 
 class Producto(models.Model):  # Renombrado de Medicamento
     codigo = models.CharField(max_length=30, null=True, blank=True)
@@ -50,6 +59,8 @@ class Producto(models.Model):  # Renombrado de Medicamento
     medida = models.ForeignKey(Medida, on_delete=models.PROTECT)
     categoria = models.ForeignKey(Categoria, null=True, blank=True, on_delete=models.PROTECT)
     laboratorio_id = models.IntegerField(null=True, blank=True)  # Cambia por ForeignKey si tienes modelo Laboratorio
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
 class ProductoLugar(models.Model):  # Renombrado de MedicamentoLugar
     existencia = models.FloatField(null=True, blank=True)

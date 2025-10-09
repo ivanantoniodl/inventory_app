@@ -4,6 +4,7 @@ from .views import CategoriaListView, CategoriaCreateView,categoria_detail, Cate
 from .views import MedidaCreateView, medida_detail, MedidaListView, MedidaUpdateView, medida_delete
 from .views import get_derivados,DerivadoCreateView, DerivadoListView, DerivadosDeleteView
 from .views import ProveedorListView, ProveedorCreateView, ProveedorUpdateView, proveedor_detail, proveedor_delete
+from .views import ProductoListView, ProductoCreateView, ProductoUpdateView, producto_detail, producto_delete, producto_lotes
 app_name = 'productos'
 
 urlpatterns = [
@@ -29,6 +30,13 @@ urlpatterns = [
     path('proveedores/update/<int:pk>/', ProveedorUpdateView.as_view(), name='proveedor-update'),
     path('proveedores/<int:pk>/', proveedor_detail, name='proveedor-detail'),
     path('proveedores/delete/<int:pk>/', proveedor_delete, name='proveedor-delete'),
+    #Productos URLs
+    path('productos/', ProductoListView.as_view(), name='producto-list'),
+    path('productos/create/', ProductoCreateView.as_view(), name='producto-create'),
+    path('productos/update/<int:pk>/', ProductoUpdateView.as_view(), name='producto-update'),
+    path('productos/<int:pk>/', producto_detail, name='producto-detail'),
+    path('productos/delete/<int:pk>/', producto_delete, name='producto-delete'),
+    path('productos/<int:pk>/lotes/', producto_lotes, name='producto-lotes'),
     
     # Add other product-related URL patterns here
 ]

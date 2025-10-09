@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+
+{% block content %} 
+
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-lg-12 grid-margin stretch-card">
+              <div class="card">
+                <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+                  <h4 class="card-title">Listado de productos</h4>
+                  <div class="row mb-3">
+                    <div class="col-12 d-flex justify-content-end">
+                      <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearProductoModal" data-id="1">
+                        Crear producto
+                      </button>
+                    </div>                    
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>
+                            Codigo
+                          </th>
+                          <th>
+                            Nombre
+                          </th>
+                          <th>
+                            Precio
+                          </th>
+                          <th>
+                            Status
+                          </th>
+                          <th>
+                            Mínimo
+                          </th>                          
+                          <th>
+                            Máximo
+                          </th>      
+                          <th>
+                            Proveedor
+                          </th>      
+                          <th>
+                            Medida 
+                          </th> 
+                          <th>
+                            Categoría
+                          </th> 
+                          <th>
+                            Acciones
+                          </th> 
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for producto in productos %}
+                        <tr>                          
+                          <td>
+                            {{ producto.codigo }}
+                          </td>
+                          <td>
+                            {{ producto.nombre}}
+                          </td>
+                          <td>
+                            {{ producto.precio|floatformat:2 }}
+                          </td>
+                          <td>                            
+                            {% if producto.habilitado %}
+                              <i class="mdi mdi-check"></i>
+                            {% else %}
+                              <i class=" mdi mdi-close "></i> 
+                            {% endif %}
+                          </td>
+                          <td>
+                            {{ producto.minimo }}
+                          </td>
+                          <td>
+                            {{ producto.maximo }}
+                          </td>
+                          <td>
+                            {{ producto.proveedor.nombre }}
+                          </td>
+                          <td>
+                            {{ producto.medida.medida }}
+                          </td>
+                          <td>
+                            {{ producto.categoria.categoria }}
+                          </td>
+                          <td>
+                            <div class="template-demo">
+                                <form action="" method="post" style="display:inline;">
+                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearProductoModal" data-id="2" data-url="{% url 'productos:producto-detail' producto.id %}" data-urlupdate="{% url 'productos:producto-update' producto.id %}">
+                                  Editar                               
+                                  </button>                              
+                                </form>                                 
+                              
+                                <form action="{% url 'productos:producto-delete' producto.id %}" method="post" style="display:inline;">
+                                  {% csrf_token %}
+                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar el producto?');">
+                                  Eliminar
+                                  </button>
+                                </form>
+                                
+                                <form action="" method="post" style="display:inline;">
+                                  <button type="button" class="btn btn-info btn-icon-text btn-sm btn-ver-lotes" data-toggle="modal" data-target="#verLotesModal" data-producto-id="{{ producto.id }}" data-producto-nombre="{{ producto.nombre }}">
+                                  Ver Lotes
+                                  </button>
+                                </form>                            
+                            </div>
+                          </td>                          
+                        </tr>  
+                        {% endfor %}                      
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>   
+
+            <div class="container mt-5">
+              <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Anterior</span>
+                    </li>
+                  {% endif %}
+
+                  {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                      </li>
+                    {% else %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Siguiente</span>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            </div>       
+            
+
+            <!-- Modal -->
+            <div class="modal fade" id="crearProductoModal" tabindex="-1" role="dialog" aria-labelledby="crearProductoLabel" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <form id="productoForm" method="post" action="">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="crearPrductoLabel">Crear prducto</h5>
+                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="form-group">
+                        {{ form.codigo.label_tag }}                        
+                        {{ form.codigo }}
+                      </div>  
+                      <div class="form-group">
+                        {{ form.nombre.label_tag }}                        
+                        {{ form.nombre }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.nombregenerico.label_tag }}                        
+                        {{ form.nombregenerico }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.descripcion.label_tag }}                        
+                        {{ form.descripcion }}
+                      </div>
+                      <div class="form-group">
+                        {{ form.precio.label_tag }}                        
+                        {{ form.precio }}
+                      </div>
+                       <div class="form-check" id="status">                         
+                        {{ form.maximo.label_tag }}         
+                        {{ form.maximo }}                                       
+                      </div> 
+                       <div class="form-check" id="status">                         
+                        {{ form.minimo.label_tag }}         
+                        {{ form.minimo }}                                       
+                      </div> 
+                       <div class="form-check" id="status">                            
+                        {{ form.presentacion.label_tag }}   
+                        {{ form.presentacion }}                                          
+                      </div>                
+                       <div class="form-check" id="status">                         
+                        {{ form.proveedor.label_tag }}      
+                        {{ form.proveedor }}                                          
+                      </div> 
+                      <div class="form-check" id="status">                         
+                        {{ form.medida.label_tag }}         
+                        {{ form.medida }}                                       
+                      </div>     
+                      <div class="form-check" id="status">                         
+                        {{ form.categoria.label_tag }}         
+                        {{ form.categoria }}                                       
+                      </div>     
+                      <div class="form-check" id="status"> 
+                        {{ form.habilitado }}   
+                        {{ form.habilitado.label_tag }}                                             
+                      </div> 
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <!-- Modal Ver Lotes -->
+            <div class="modal fade" id="verLotesModal" tabindex="-1" role="dialog" aria-labelledby="verLotesLabel" aria-hidden="true">
+              <div class="modal-dialog modal-lg" role="document" style="min-width: 900px; max-width: 95vw;">
+                <div class="modal-content">
+                  <!-- Modal Header -->
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="verLotesLabel">Listado de lotes</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <!-- Modal Body -->
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                      <div class="row">
+                        <div class="col-lg-12 grid-margin stretch-card">
+                          <div class="card">
+                            <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+                              <h4 class="card-title">Listado de lotes</h4>                            
+                            <div class="table-responsive" id="lotes-lista">
+                              <table class="table table-striped">
+                                <thead>
+                                  <tr>
+                                    <th>
+                                      Lote
+                                    </th>
+                                    <th>
+                                      Costo
+                                    </th>
+                                    <th>
+                                      Costo con descuento
+                                    </th>
+                                    <th>
+                                      Fecha de ingreso
+                                    </th>
+                                    <th>
+                                      Fecha de vencimiento
+                                    </th>
+                                    <th>
+                                      Existencia
+                                    </th>                       
+                                  </tr>
+                                </thead>
+                                <tbody id="tablaLotes">                                                       
+                                </tbody>
+                              </table>
+                            </div>                            
+                          </div>
+                        </div>  
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>     
+          </div>            
+{% endblock %}
+    
+{% block scripts %}
+            <script>
+              $(document).ready(function() {
+              $('#crearProductoModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget) // Botón que abre el modal
+                var recipient = button.data('id')
+                var url = button.data('url')
+                var urlUpdate = button.data('urlupdate')                
+                var modal = $(this)                
+                
+                console.log('Recipient:', recipient);
+                console.log('URL:', url);
+                console.log('URL Update:', urlUpdate);  
+
+                if(recipient == 1){
+                  modal.find('.modal-title').text('Crear Producto')
+                  modal.find('form').attr('action', "{% url 'productos:producto-create' %}")
+                  modal.find('#id_proveedor').val('')
+                } else if(recipient == 2){
+                  modal.find('.modal-title').text('Editar Producto')
+                  modal.find('form').attr('action', urlUpdate)
+                  
+
+                  // Traer datos existentes vía AJAX
+                  $.ajax({
+                    url: url,
+                    method: 'GET',
+                    success: function(data) {
+                      modal.find('#id_codigo').val(data.codigo)
+                      modal.find('#id_nombre').val(data.nombre)
+                      modal.find('#id_nombregenerico').val(data.nombregenerico)
+                      modal.find('#id_descripcion').val(data.descripcion)  
+                      modal.find('#id_precio').val(data.precio)
+                      modal.find('#id_maximo').val(data.maximo)
+                      modal.find('#id_minimo').val(data.minimo)
+                      modal.find('#id_presentacion').val(data.presentacion)
+                      modal.find('#id_proveedor').val(data.proveedor)
+                      modal.find('#id_medida').val(data.medida)
+                      modal.find('#id_categoria').val(data.categoria) 
+                      modal.find('#id_habilitado').prop('checked', data.habilitado)
+                    }
+                  })
+                }
+              })
+
+              // Handle form submission with AJAX
+              $('#productoForm').on('submit', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                var url = form.attr('action');
+                var formData = form.serialize();
+                
+                $.ajax({
+                  url: url,
+                  type: 'POST',
+                  data: formData,
+                  headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  success: function(response) {
+                    console.log('AJAX Response:', response);
+                    if (response.success) {
+                      // Close modal
+                      $('#crearProductoModal').modal('hide');
+                      // Reload the page to show updated list
+                      setTimeout(function() {
+                        location.reload();
+                      }, 50);
+                    } else {
+                      // Handle form errors
+                      alert('Error al guardar el producto ' + JSON.stringify(response.errors));
+                    }
+                  },
+                  error: function(xhr, status, error) {
+                    // Handle errors if needed
+                    console.error('Error submitting form:', error);
+                    alert('Error al guardar el producto. Por favor, inténtelo de nuevo.');
+                  }
+                });
+              });
+              
+              // Handle Ver Lotes modal
+              $('#verLotesModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var productoId = button.data('producto-id');
+                var productoNombre = button.data('producto-nombre');
+                var modal = $(this);
+                
+                console.log('Producto ID:', productoId);
+                console.log('Producto Nombre:', productoNombre);
+                
+                // Ensure modal dialog maintains proper size
+                modal.find('.modal-dialog').css({
+                  'min-width': '900px',
+                  'max-width': '95vw'
+                });
+                
+                // Update modal title
+                modal.find('.modal-title').text('Lotes de ' + productoNombre);
+                modal.find('.card-title').text('Listado de lotes - ' + productoNombre);
+                
+                // Load lotes data via AJAX
+                var url = '/productos/productos/' + productoId + '/lotes/';
+                
+                $.ajax({
+                  url: url,
+                  method: 'GET',
+                  success: function(data) {
+                    console.log('Lotes data:', data);
+                    var tbody = $('#tablaLotes');
+                    tbody.empty();
+                    
+                    if (data.lotes && data.lotes.length > 0) {
+                      data.lotes.forEach(function(lote) {
+                        tbody.append(
+                          '<tr>' +
+                            '<td>' + (lote.id || 'N/A') + '</td>' +
+                            '<td>Q' + (lote.costo ? parseFloat(lote.costo).toFixed(2) : '0.00') + '</td>' +
+                            '<td>Q' + (lote.costodescuento ? parseFloat(lote.costodescuento).toFixed(2) : '0.00') + '</td>' +
+                            '<td>' + (lote.fechaingreso || 'N/A') + '</td>' +
+                            '<td>' + (lote.fecha_vencimiento || 'N/A') + '</td>' +
+                            '<td>' + (lote.existencia || 'N/A') + '</td>' +
+                          '</tr>'
+                        );
+                      });
+                    } else {
+                      tbody.append(
+                        '<tr><td colspan="6" class="text-center">No hay lotes registrados para este producto</td></tr>'
+                      );
+                    }
+                  },
+                  error: function(xhr, status, error) {
+                    console.error('Error loading lotes:', error);
+                    var tbody = $('#tablaLotes');
+                    tbody.empty();
+                    tbody.append(
+                      '<tr><td colspan="6" class="text-center text-danger">Error al cargar los lotes</td></tr>'
+                    );
+                  }
+                });
+              });
+            })
+
+            
+
+            </script>
+{% endblock %}
