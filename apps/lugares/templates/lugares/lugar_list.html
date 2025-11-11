@@ -125,7 +125,7 @@
             <div class="modal fade" id="crearLugarModal" tabindex="-1" role="dialog" aria-labelledby="crearLugarLabel" aria-hidden="true">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
-                  <form id="lugarForm" method="post" action="">
+                  <form id="lugarForm" method="post" action="{% url 'lugares:lugar-create' %}">
                     {% csrf_token %}
                     <div class="modal-header">
                       <h5 class="modal-title" id="crearLugarLabel">Crear Lugar</h5>

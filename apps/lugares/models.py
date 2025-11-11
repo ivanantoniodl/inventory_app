@@ -7,6 +7,8 @@ from django.db import models
 class LugarTipo(models.Model):
     idLugarTipo = models.AutoField(primary_key=True)
     tipo = models.CharField(max_length=25)
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
     class Meta:
         db_table = 'LugarTipo'
@@ -20,6 +22,8 @@ class LugarTipo(models.Model):
 class Empresa(models.Model):
     idEmpresa = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=45, null=True, blank=True)
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
     class Meta:
         db_table = 'Empresa'
@@ -48,6 +52,8 @@ class Lugar(models.Model):
     direccion = models.CharField(max_length=255, null=True, blank=True)
     telefono = models.CharField(max_length=9, null=True, blank=True)
     num_placa = models.CharField(max_length=8, null=True, blank=True)
+    eliminado_ts = models.DateTimeField(null=True, blank=True)
+    eliminado = models.BooleanField(null=True)
 
     class Meta:
         db_table = 'Lugar'

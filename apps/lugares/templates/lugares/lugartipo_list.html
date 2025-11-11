@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12 grid-margin stretch-card">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title">Listado de Tipos de Lugar</h4>
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearLugarTipoModal">                            
+                            Crear Tipo
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tipo de Lugar</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lugartipo in lugartipos %}
+                                <tr>
+                                    <td>{{ lugartipo.idLugarTipo }}</td>
+                                    <td>{{ lugartipo.tipo }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-info btn-sm btn-editar" 
+                                                data-toggle="modal" 
+                                                data-target="#editarLugarTipoModal"
+                                                data-id="{{ lugartipo.idLugarTipo }}"
+                                                data-tipo="{{ lugartipo.tipo }}">
+                                            <i class="ti-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm btn-eliminar" 
+                                                data-id="{{ lugartipo.idLugarTipo }}"
+                                                data-tipo="{{ lugartipo.tipo }}">
+                                            <i class="ti-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No hay tipos de lugar registrados.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    {% if is_paginated %}
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav aria-label="Navegación de páginas">
+                            <ul class="pagination">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1">Primera</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                                    </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Última</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Tipo de Lugar -->
+<div class="modal fade" id="crearLugarTipoModal" tabindex="-1" role="dialog" aria-labelledby="crearLugarTipoLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="lugartipoForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="crearLugarTipoLabel">Crear Tipo de Lugar</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+                        {{ form.tipo }}
+                        {% if form.tipo.errors %}
+                            <div class="text-danger">
+                                {% for error in form.tipo.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Tipo de Lugar -->
+<div class="modal fade" id="editarLugarTipoModal" tabindex="-1" role="dialog" aria-labelledby="editarLugarTipoLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="editarLugarTipoForm" method="post" action="">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editarLugarTipoLabel">Editar Tipo de Lugar</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="edit_tipo">Tipo de Lugar</label>
+                        <input type="text" class="form-control" id="edit_tipo" name="tipo" placeholder="Ingrese el tipo de lugar" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Crear Tipo de Lugar
+    $('#lugartipoForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: '{% url "lugares:lugartipo-create" %}',
+            type: 'POST',
+            data: $(this).serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#crearLugarTipoModal').modal('hide');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 500);
+                } else {
+                    alert('Error: ' + JSON.stringify(response.errors));
+                }
+            },
+            error: function() {
+                alert('Error al crear el tipo de lugar');
+            }
+        });
+    });
+
+    // Editar Tipo de Lugar
+    $('.btn-editar').on('click', function() {
+        var id = $(this).data('id');
+        var tipo = $(this).data('tipo');
+        
+        $('#edit_tipo').val(tipo);
+        $('#editarLugarTipoForm').attr('action', '/lugares/lugartipos/update/' + id + '/');
+    });
+
+    $('#editarLugarTipoForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: $(this).serialize(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#editarLugarTipoModal').modal('hide');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 500);
+                } else {
+                    alert('Error: ' + JSON.stringify(response.errors));
+                }
+            },
+            error: function() {
+                alert('Error al actualizar el tipo de lugar');
+            }
+        });
+    });
+
+    // Eliminar Tipo de Lugar
+    $('.btn-eliminar').on('click', function() {
+        var id = $(this).data('id');
+        var tipo = $(this).data('tipo');
+        
+        if (confirm('¿Está seguro de que desea eliminar el tipo de lugar "' + tipo + '"?')) {
+            window.location.href = '/lugares/lugartipos/delete/' + id + '/';
+        }
+    });
+});
+</script>
+{% endblock %}

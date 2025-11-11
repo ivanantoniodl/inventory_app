@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from .models import Empresa, Lugar, LugarTipo
-from .forms import EmpresaForm, LugarForm
+from .forms import EmpresaForm, LugarForm, LugarTipoForm
 
 # Create your views here.
 class EmpresaListView(ListView):
@@ -21,8 +21,11 @@ class EmpresaListView(ListView):
         context['form'] = EmpresaForm()  # Añade el formulario al contexto
         return context
     
-    def get_queryset(self):        
-        return Empresa.objects.all().order_by('nombre')
+    def get_queryset(self):
+        return (
+            Empresa.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+            .order_by('nombre')
+        )
 
 class EmpresaCreateView(CreateView):
     model = Empresa
@@ -77,7 +80,9 @@ def empresa_detail(request, pk):
 
 def empresa_delete(request, pk):
     empresa = Empresa.objects.get(pk=pk)
-    empresa.delete()
+    empresa.eliminado = 1
+    empresa.eliminado_ts = timezone.now()
+    empresa.save()
     return redirect('lugares:empresa-list')
 
 
@@ -93,8 +98,12 @@ class LugarListView(ListView):
         context['form'] = LugarForm()  # Añade el formulario al contexto
         return context
     
-    def get_queryset(self):        
-        return Lugar.objects.all().order_by('nombre').select_related('empresa', 'lugar_tipo')
+    def get_queryset(self):
+        return (
+            Lugar.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+            .order_by('nombre')
+            .select_related('empresa', 'lugar_tipo')
+        )
 
 class LugarCreateView(CreateView):
     model = Lugar
@@ -153,5 +162,83 @@ def lugar_detail(request, pk):
 
 def lugar_delete(request, pk):
     lugar = Lugar.objects.get(pk=pk)
-    lugar.delete()
+    lugar.eliminado = 1
+    lugar.eliminado_ts = timezone.now()
+    lugar.save()
     return redirect('lugares:lugar-list')
+
+
+# LugarTipo views
+class LugarTipoListView(ListView):
+    model = LugarTipo
+    template_name = 'lugares/lugartipo_list.html'
+    context_object_name = 'lugartipos'
+    paginate_by = 10  # Número de tipos de lugar por página
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = LugarTipoForm()
+        return context
+    
+    def get_queryset(self):
+        return (
+            LugarTipo.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+            .order_by('tipo')
+        )
+
+class LugarTipoCreateView(CreateView):
+    model = LugarTipo
+    form_class = LugarTipoForm
+    template_name = 'lugares/lugartipo_form.html'  
+    success_url = reverse_lazy('lugares:lugartipo-list')  
+    
+    def form_valid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Tipo de lugar creado exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
+
+class LugarTipoUpdateView(UpdateView):
+    model = LugarTipo
+    form_class = LugarTipoForm
+    template_name = 'lugares/lugartipo_form.html'  
+    success_url = reverse_lazy('lugares:lugartipo-list')
+    
+    def form_valid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            super().form_valid(form)
+            return JsonResponse({'success': True, 'message': 'Tipo de lugar actualizado exitosamente'})
+        else:
+            return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        # Check if request is AJAX
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'errors': form.errors})
+        else:
+            return super().form_invalid(form)
+
+def lugartipo_detail(request, pk):
+    lugartipo = LugarTipo.objects.get(pk=pk)
+    data = {
+        "id": lugartipo.idLugarTipo,
+        'tipo': lugartipo.tipo,
+    }
+    return JsonResponse(data)
+
+def lugartipo_delete(request, pk):
+    lugartipo = LugarTipo.objects.get(pk=pk)
+    lugartipo.eliminado = 1
+    lugartipo.eliminado_ts = timezone.now()
+    lugartipo.save()
+    return redirect('lugares:lugartipo-list')

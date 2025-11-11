@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from .models import Empresa, Lugar, LugarTipo
 
 
@@ -38,5 +39,23 @@ class LugarForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Filter only active records
-        self.fields['empresa'].queryset = Empresa.objects.all().order_by('nombre')
-        self.fields['lugar_tipo'].queryset = LugarTipo.objects.all().order_by('tipo')
+        self.fields['empresa'].queryset = (
+            Empresa.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+            .order_by('nombre')
+        )
+        self.fields['lugar_tipo'].queryset = (
+            LugarTipo.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+            .order_by('tipo')
+        )
+
+
+class LugarTipoForm(forms.ModelForm):
+    class Meta:
+        model = LugarTipo
+        fields = ['tipo']
+        labels = {
+            'tipo': 'Nombre del tipo de lugar',
+        }
+        widgets = {
+            'tipo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ingrese el nombre del tipo de lugar', 'required': 'required'}),
+        }
