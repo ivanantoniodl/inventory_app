@@ -93,7 +93,7 @@
 <div class="modal fade" id="crearLugarTipoModal" tabindex="-1" role="dialog" aria-labelledby="crearLugarTipoLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form id="lugartipoForm" method="post" action="">
+            <form id="lugartipoForm" method="post" action="{% url 'lugares:lugartipo-create' %}">
                 {% csrf_token %}
                 <div class="modal-header">
                     <h5 class="modal-title" id="crearLugarTipoLabel">Crear Tipo de Lugar</h5>

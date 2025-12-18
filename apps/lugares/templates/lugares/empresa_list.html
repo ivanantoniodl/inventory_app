@@ -34,20 +34,19 @@
                             {{ empresa.nombre }}
                           </td>
                           <td>
-                            <div class="template-demo">
-                                <form action="" method="post" style="display:inline;">
-                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearEmpresaModal" data-id="2" data-url="{% url 'lugares:empresa-detail' empresa.idEmpresa %}" data-urlupdate="{% url 'lugares:empresa-update' empresa.idEmpresa %}">
-                                  Editar                               
-                                  </button>                              
-                                </form>                                 
-                              
-                                <form action="{% url 'lugares:empresa-delete' empresa.idEmpresa %}" method="post" style="display:inline;">
-                                  {% csrf_token %}
-                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar la empresa?');">
-                                  Eliminar
-                                  </button>
-                                </form>                            
-                            </div>
+                            <button type="button" class="btn btn-info btn-sm btn-editar" 
+                                    data-toggle="modal" 
+                                    data-target="#crearEmpresaModal"
+                                    data-id="2"
+                                    data-url="{% url 'lugares:empresa-detail' empresa.idEmpresa %}" 
+                                    data-urlupdate="{% url 'lugares:empresa-update' empresa.idEmpresa %}">
+                              <i class="ti-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm btn-eliminar" 
+                                    data-id="{{ empresa.idEmpresa }}"
+                                    data-nombre="{{ empresa.nombre }}">
+                              <i class="ti-trash"></i>
+                            </button>
                           </td>                          
                         </tr>  
                         {% endfor %}                      
@@ -128,6 +127,25 @@
 {% block scripts %}
             <script>
               $(document).ready(function() {
+              // Editar Empresa
+              $('.btn-editar').on('click', function() {
+                var url = $(this).data('url');
+                var urlUpdate = $(this).data('urlupdate');
+                var modal = $('#crearEmpresaModal');
+                
+                modal.find('.modal-title').text('Editar Empresa');
+                modal.find('form').attr('action', urlUpdate);
+                
+                // Traer datos existentes vía AJAX
+                $.ajax({
+                  url: url,
+                  method: 'GET',
+                  success: function(data) {
+                    modal.find('#id_nombre').val(data.nombre);
+                  }
+                });
+              });
+              
               $('#crearEmpresaModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget) // Botón que abre el modal
                 var recipient = button.data('id')
@@ -190,6 +208,16 @@
                     alert('Error al guardar la empresa. Por favor, inténtelo de nuevo.');
                   }
                 });
+              });
+
+              // Eliminar Empresa
+              $('.btn-eliminar').on('click', function() {
+                var id = $(this).data('id');
+                var nombre = $(this).data('nombre');
+                
+                if (confirm('¿Está seguro de que desea eliminar la empresa "' + nombre + '"?')) {
+                  window.location.href = '/lugares/empresas/delete/' + id + '/';
+                }
               });
             })
 

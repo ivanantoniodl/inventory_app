@@ -305,35 +305,39 @@
               <span class="menu-title">Dashboard</span>
             </a>
           </li>         
+          {% with request.resolver_match.url_name as url_name %}
+          {% with request.resolver_match.app_name as app_name %}
           <li class="nav-item">
-            <a class="nav-link" data-toggle="collapse" href="#tables" aria-expanded="false" aria-controls="tables">
+            <a class="nav-link" data-toggle="collapse" href="#tables" aria-expanded="{% if app_name == 'productos' %}true{% else %}false{% endif %}" aria-controls="tables" id="productos-toggle">
               <i class="icon-grid-2 menu-icon"></i>
               <span class="menu-title">Productos</span>
               <i class="menu-arrow"></i>
             </a>
-            <div class="collapse" id="tables">
+            <div class="collapse{% if app_name == 'productos' %} show{% endif %}" id="tables">
               <ul class="nav flex-column sub-menu">
-                <li class="nav-item"> <a class="nav-link" href="{% url 'productos:categoria-list' %}">Categorías</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'productos:medida-list' %}">Medidas</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'productos:proveedor-list' %}">Proveedores</a></li>              
-                <li class="nav-item"> <a class="nav-link" href="{% url 'productos:producto-list' %}">Productos</a></li>
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'categoria-list' %} active{% endif %}" href="{% url 'productos:categoria-list' %}">Categorías</a></li>
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'medida-list' %} active{% endif %}" href="{% url 'productos:medida-list' %}">Medidas</a></li>
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'proveedor-list' %} active{% endif %}" href="{% url 'productos:proveedor-list' %}">Proveedores</a></li>              
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'producto-list' %} active{% endif %}" href="{% url 'productos:producto-list' %}">Productos</a></li>
               </ul>
             </div>
           </li>
           <li class="nav-item">
-            <a class="nav-link" data-toggle="collapse" href="#lugares" aria-expanded="false" aria-controls="lugares">
+            <a class="nav-link" data-toggle="collapse" href="#lugares" aria-expanded="{% if app_name == 'lugares' %}true{% else %}false{% endif %}" aria-controls="lugares" id="lugares-toggle">
               <i class="icon-layout menu-icon"></i>
               <span class="menu-title">Lugares</span>
               <i class="menu-arrow"></i>
             </a>
-            <div class="collapse" id="lugares">
+            <div class="collapse{% if app_name == 'lugares' %} show{% endif %}" id="lugares">
               <ul class="nav flex-column sub-menu">
-                <li class="nav-item"> <a class="nav-link" href="{% url 'lugares:empresa-list' %}">Empresas</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'lugares:lugar-list' %}">Lugares</a></li>
-                <li class="nav-item"> <a class="nav-link" href="{% url 'lugares:lugartipo-list' %}">Tipos de Lugar</a></li>
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'empresa-list' %} active{% endif %}" href="{% url 'lugares:empresa-list' %}">Empresas</a></li>
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'lugar-list' %} active{% endif %}" href="{% url 'lugares:lugar-list' %}">Lugares</a></li>
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'lugartipo-list' %} active{% endif %}" href="{% url 'lugares:lugartipo-list' %}">Tipos de Lugar</a></li>
               </ul>
             </div>
-          </li>        
+          </li>
+          {% endwith %}
+          {% endwith %}        
         </ul>
       </nav>
       <!-- partial -->
@@ -385,6 +389,21 @@
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+      // Prevenir que se colapse al hacer clic en los enlaces del submenú
+      $('.sub-menu .nav-link').on('click', function(e) {
+        // Mantener abierto el menú padre después de hacer clic
+        var parentCollapse = $(this).closest('.collapse');
+        // Usar requestAnimationFrame para mejor rendimiento
+        requestAnimationFrame(function() {
+          parentCollapse.addClass('show');
+          parentCollapse.prev('a').attr('aria-expanded', 'true');
+        });
+      });
+    });
+  </script>
 
   {% block scripts %}
   {% endblock %}

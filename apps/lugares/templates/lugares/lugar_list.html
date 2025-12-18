@@ -58,20 +58,19 @@
                             {{ lugar.telefono }}
                           </td>
                           <td>
-                            <div class="template-demo">
-                                <form action="" method="post" style="display:inline;">
-                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearLugarModal" data-id="2" data-url="{% url 'lugares:lugar-detail' lugar.idLugar %}" data-urlupdate="{% url 'lugares:lugar-update' lugar.idLugar %}">
-                                  Editar                               
-                                  </button>                              
-                                </form>                                 
-                              
-                                <form action="{% url 'lugares:lugar-delete' lugar.idLugar %}" method="post" style="display:inline;">
-                                  {% csrf_token %}
-                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar el lugar?');">
-                                  Eliminar
-                                  </button>
-                                </form>                            
-                            </div>
+                            <button type="button" class="btn btn-info btn-sm btn-editar" 
+                                    data-toggle="modal" 
+                                    data-target="#crearLugarModal"
+                                    data-id="2"
+                                    data-url="{% url 'lugares:lugar-detail' lugar.idLugar %}" 
+                                    data-urlupdate="{% url 'lugares:lugar-update' lugar.idLugar %}">
+                              <i class="ti-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm btn-eliminar" 
+                                    data-id="{{ lugar.idLugar }}"
+                                    data-nombre="{{ lugar.nombre }}">
+                              <i class="ti-trash"></i>
+                            </button>
                           </td>                          
                         </tr>  
                         {% endfor %}                      
@@ -153,10 +152,6 @@
                       <div class="form-group">
                         {{ form.telefono.label_tag }}                        
                         {{ form.telefono }}
-                      </div>
-                      <div class="form-group">
-                        {{ form.num_placa.label_tag }}                        
-                        {{ form.num_placa }}
                       </div>                      
                     </div>
                     <div class="modal-footer">
@@ -172,11 +167,32 @@
 {% block scripts %}
             <script>
               $(document).ready(function() {
+              // Editar Lugar
+              $('.btn-editar').on('click', function() {
+                var url = $(this).data('url');
+                var urlUpdate = $(this).data('urlupdate');
+                var modal = $('#crearLugarModal');
+                
+                modal.find('.modal-title').text('Editar Lugar');
+                modal.find('form').attr('action', urlUpdate);
+                
+                // Traer datos existentes vía AJAX
+                $.ajax({
+                  url: url,
+                  method: 'GET',
+                  success: function(data) {
+                    modal.find('#id_empresa').val(data.empresa);
+                    modal.find('#id_lugar_tipo').val(data.lugar_tipo);
+                    modal.find('#id_nombre').val(data.nombre);
+                    modal.find('#id_direccion').val(data.direccion);
+                    modal.find('#id_telefono').val(data.telefono);
+                  }
+                });
+              });
+              
               $('#crearLugarModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget) // Botón que abre el modal
                 var recipient = button.data('id')
-                var url = button.data('url')
-                var urlUpdate = button.data('urlupdate')                
                 var modal = $(this)                
                 
 
@@ -188,7 +204,6 @@
                   modal.find('#id_nombre').val('')
                   modal.find('#id_direccion').val('')
                   modal.find('#id_telefono').val('')
-                  modal.find('#id_num_placa').val('')
                 } else if(recipient == 2){
                   modal.find('.modal-title').text('Editar Lugar')
                   modal.find('form').attr('action', urlUpdate)
@@ -204,7 +219,6 @@
                       modal.find('#id_nombre').val(data.nombre)
                       modal.find('#id_direccion').val(data.direccion)
                       modal.find('#id_telefono').val(data.telefono)
-                      modal.find('#id_num_placa').val(data.num_placa)
                     }
                   })
                 }
@@ -244,6 +258,16 @@
                     alert('Error al guardar el lugar. Por favor, inténtelo de nuevo.');
                   }
                 });
+              });
+
+              // Eliminar Lugar
+              $('.btn-eliminar').on('click', function() {
+                var id = $(this).data('id');
+                var nombre = $(this).data('nombre');
+                
+                if (confirm('¿Está seguro de que desea eliminar el lugar "' + nombre + '"?')) {
+                  window.location.href = '/lugares/lugares/delete/' + id + '/';
+                }
               });
             })
 

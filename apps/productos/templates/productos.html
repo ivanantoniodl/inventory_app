@@ -86,25 +86,22 @@
                             {{ producto.categoria.categoria }}
                           </td>
                           <td>
-                            <div class="template-demo">
-                                <form action="" method="post" style="display:inline;">
-                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearProductoModal" data-id="2" data-url="{% url 'productos:producto-detail' producto.id %}" data-urlupdate="{% url 'productos:producto-update' producto.id %}">
-                                  Editar                               
-                                  </button>                              
-                                </form>                                 
-                              
-                                <form action="{% url 'productos:producto-delete' producto.id %}" method="post" style="display:inline;">
-                                  {% csrf_token %}
-                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar el producto?');">
-                                  Eliminar
-                                  </button>
-                                </form>
-                                
-                                <form action="" method="post" style="display:inline;">
-                                  <button type="button" class="btn btn-info btn-icon-text btn-sm btn-ver-lotes" data-toggle="modal" data-target="#verLotesModal" data-producto-id="{{ producto.id }}" data-producto-nombre="{{ producto.nombre }}">
-                                  Ver Lotes
-                                  </button>
-                                </form>                            
+                            <button type="button" class="btn btn-info btn-sm btn-editar" 
+                                    data-toggle="modal" 
+                                    data-target="#crearProductoModal"
+                                    data-id="2"
+                                    data-url="{% url 'productos:producto-detail' producto.id %}" 
+                                    data-urlupdate="{% url 'productos:producto-update' producto.id %}">
+                              <i class="ti-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm btn-eliminar" 
+                                    data-id="{{ producto.id }}"
+                                    data-nombre="{{ producto.nombre }}">
+                              <i class="ti-trash"></i>
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm btn-ver-lotes" data-toggle="modal" data-target="#verLotesModal" data-producto-id="{{ producto.id }}" data-producto-nombre="{{ producto.nombre }}">
+                              Ver Lotes
+                            </button>                            
                             </div>
                           </td>                          
                         </tr>  
@@ -423,6 +420,16 @@
                     );
                   }
                 });
+              });
+
+              // Eliminar Producto
+              $('.btn-eliminar').on('click', function() {
+                var id = $(this).data('id');
+                var nombre = $(this).data('nombre');
+                
+                if (confirm('¿Está seguro de que desea eliminar el producto "' + nombre + '"?')) {
+                  window.location.href = '/productos/productos/delete/' + id + '/';
+                }
               });
             })
 

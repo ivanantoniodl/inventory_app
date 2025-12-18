@@ -151,12 +151,11 @@ def lugar_detail(request, pk):
     lugar = Lugar.objects.get(pk=pk)
     data={
         "id": lugar.idLugar,
-        'empresa': lugar.empresa.nombre,
-        'lugar_tipo': lugar.lugar_tipo.tipo,
+        'empresa': lugar.empresa.idEmpresa,  # Devuelve el ID, no el nombre
+        'lugar_tipo': lugar.lugar_tipo.idLugarTipo,  # Devuelve el ID, no el tipo
         'nombre': lugar.nombre,
         'direccion': lugar.direccion,
         'telefono': lugar.telefono,
-        'num_placa': lugar.num_placa,
     }
     return JsonResponse(data)
 

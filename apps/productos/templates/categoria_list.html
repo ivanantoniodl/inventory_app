@@ -44,20 +44,19 @@
                             {% endif %}
                           </td>
                           <td>
-                            <div class="template-demo">
-                                <form action="" method="post" style="display:inline;">
-                                  <button type="button" class="btn btn-dark btn-icon-text btn-sm" data-toggle="modal" data-target="#crearCategoriaModal" data-id="2" data-url="{% url 'productos:categoria-detail' categoria.id %}" data-urlupdate="{% url 'productos:categoria-update' categoria.id %}">
-                                  Editar                               
-                                  </button>                              
-                                </form>                                 
-                              
-                                <form action="{% url 'productos:categoria-delete' categoria.id %}" method="post" style="display:inline;">
-                                  {% csrf_token %}
-                                  <button class="btn btn-danger btn-icon-text btn-sm" type="submit" onclick="return confirm('¿Estás seguro de eliminar la categoría?');">
-                                  Eliminar
-                                  </button>
-                                </form>                            
-                            </div>
+                            <button type="button" class="btn btn-info btn-sm btn-editar" 
+                                    data-toggle="modal" 
+                                    data-target="#crearCategoriaModal"
+                                    data-id="2"
+                                    data-url="{% url 'productos:categoria-detail' categoria.id %}" 
+                                    data-urlupdate="{% url 'productos:categoria-update' categoria.id %}">
+                              <i class="ti-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm btn-eliminar" 
+                                    data-id="{{ categoria.id }}"
+                                    data-nombre="{{ categoria.categoria }}">
+                              <i class="ti-trash"></i>
+                            </button>
                           </td>                          
                         </tr>  
                         {% endfor %}                      
@@ -205,6 +204,16 @@
                     alert('Error al guardar la categoría. Por favor, inténtelo de nuevo.');
                   }
                 });
+              });
+
+              // Eliminar Categoría
+              $('.btn-eliminar').on('click', function() {
+                var id = $(this).data('id');
+                var nombre = $(this).data('nombre');
+                
+                if (confirm('¿Está seguro de que desea eliminar la categoría "' + nombre + '"?')) {
+                  window.location.href = '/productos/categorias/delete/' + id + '/';
+                }
               });
             })
 
