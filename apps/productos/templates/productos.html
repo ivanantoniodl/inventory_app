@@ -1,19 +1,60 @@
 {% extends 'base.html' %}
 
-{% block content %} 
+{% block content %}
+<style>
+  .panel-filtros-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  .panel-filtros-overlay[aria-hidden="false"] {
+    display: flex !important;
+  }
+  .panel-filtros-container {
+    background: #fff;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    max-height: 90vh;
+    overflow: auto;
+  }
+  .panel-filtros-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .panel-filtros-header .panel-filtros-close {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+  .panel-filtros-body {
+    padding: 1.25rem;
+  }
+</style> 
 
         <div class="container-fluid">
           <div class="row">
             <div class="col-lg-12 grid-margin stretch-card">
               <div class="card">
                 <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
-                  <h4 class="card-title">Listado de productos</h4>
-                  <div class="row mb-3">
-                    <div class="col-12 d-flex justify-content-end">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h4 class="card-title mb-1">Listado de productos</h4>
+                      <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFiltros" aria-label="Filtros">
+                        Filtros
+                      </button>
+                    </div>
+                    <div>
                       <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearProductoModal" data-id="1">
                         Crear producto
                       </button>
-                    </div>                    
+                    </div>
                   </div>
                   <div class="table-responsive">
                     <table class="table table-striped">
@@ -45,66 +86,77 @@
                           </th> 
                           <th>
                             Categoría
-                          </th> 
+                          </th>
+                          <th>
+                            Lugar
+                          </th>
+                          <th>
+                            Existencia
+                          </th>
                           <th>
                             Acciones
-                          </th> 
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {% for producto in productos %}
-                        <tr>                          
+                        {% for pl in productolugares %}
+                        <tr>
                           <td>
-                            {{ producto.codigo }}
+                            {{ pl.producto.codigo }}
                           </td>
                           <td>
-                            {{ producto.nombre}}
+                            {{ pl.producto.nombre }}
                           </td>
                           <td>
-                            {{ producto.precio|floatformat:2 }}
+                            {{ pl.producto.precio|floatformat:2 }}
                           </td>
-                          <td>                            
-                            {% if producto.habilitado %}
+                          <td>
+                            {% if pl.producto.habilitado %}
                               <i class="mdi mdi-check"></i>
                             {% else %}
-                              <i class=" mdi mdi-close "></i> 
+                              <i class="mdi mdi-close"></i>
                             {% endif %}
                           </td>
                           <td>
-                            {{ producto.minimo }}
+                            {{ pl.producto.minimo }}
                           </td>
                           <td>
-                            {{ producto.maximo }}
+                            {{ pl.producto.maximo }}
                           </td>
                           <td>
-                            {{ producto.proveedor.nombre }}
+                            {{ pl.producto.proveedor.nombre|default:"—" }}
                           </td>
                           <td>
-                            {{ producto.medida.medida }}
+                            {{ pl.producto.medida.medida }}
                           </td>
                           <td>
-                            {{ producto.categoria.categoria }}
+                            {{ pl.producto.categoria.categoria|default:"—" }}
                           </td>
                           <td>
-                            <button type="button" class="btn btn-info btn-sm btn-editar" 
-                                    data-toggle="modal" 
+                            {% if pl.lugar %}{{ pl.lugar.nombre }}{% else %}—{% endif %}
+                          </td>
+                          <td>
+                            {{ pl.existencia|default:"—" }}
+                          </td>
+                          <td>
+                            <button type="button" class="btn btn-info btn-sm btn-editar"
+                                    data-toggle="modal"
                                     data-target="#crearProductoModal"
                                     data-id="2"
-                                    data-url="{% url 'productos:producto-detail' producto.id %}" 
-                                    data-urlupdate="{% url 'productos:producto-update' producto.id %}">
+                                    data-url="{% url 'productos:producto-detail' pl.producto.id %}"
+                                    data-urlupdate="{% url 'productos:producto-update' pl.producto.id %}">
                               <i class="ti-pencil"></i>
                             </button>
-                            <button type="button" class="btn btn-danger btn-sm btn-eliminar" 
-                                    data-id="{{ producto.id }}"
-                                    data-nombre="{{ producto.nombre }}">
+                            <button type="button" class="btn btn-danger btn-sm btn-eliminar"
+                                    data-id="{{ pl.producto.id }}"
+                                    data-nombre="{{ pl.producto.nombre }}">
                               <i class="ti-trash"></i>
                             </button>
-                            <button type="button" class="btn btn-success btn-sm btn-ver-lotes" data-toggle="modal" data-target="#verLotesModal" data-producto-id="{{ producto.id }}" data-producto-nombre="{{ producto.nombre }}">
+                            <button type="button" class="btn btn-success btn-sm btn-ver-lotes" data-toggle="modal" data-target="#verLotesModal" data-producto-id="{{ pl.producto.id }}" data-producto-nombre="{{ pl.producto.nombre }}">
                               Ver Lotes
-                            </button>                            
-                            </div>
-                          </td>                          
-                        </tr>  
+                            </button>
+                          </td>
+                        </tr>
                         {% endfor %}                      
                       </tbody>
                     </table>
@@ -118,7 +170,7 @@
                 <ul class="pagination justify-content-center">
                   {% if page_obj.has_previous %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}">Anterior</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
@@ -133,14 +185,14 @@
                       </li>
                     {% else %}
                       <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}">{{ num }}</a>
                       </li>
                     {% endif %}
                   {% endfor %}
 
                   {% if page_obj.has_next %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}">Siguiente</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
@@ -149,8 +201,37 @@
                   {% endif %}
                 </ul>
               </nav>
-            </div>       
-            
+            </div>
+
+            <!-- Panel full-screen Filtros -->
+            <div id="panelFiltros" class="panel-filtros-overlay" aria-hidden="true" style="display: none;">
+              <div class="panel-filtros-container">
+                <div class="panel-filtros-header d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">Filtros</h5>
+                  <button type="button" class="btn btn-link p-0 text-dark panel-filtros-close" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="panel-filtros-body">
+                  <form method="get" action="{% url 'productos:producto-list' %}" id="formFiltros">
+                    <input type="hidden" name="page" value="1">
+                    <div class="form-group">
+                      <label for="filtroLugar">Lugar</label>
+                      <select name="lugar" id="filtroLugar" class="form-control">
+                        <option value="">Todos los lugares</option>
+                        {% for lugar in lugares_filtro %}
+                          <option value="{{ lugar.idLugar }}" {% if filtro_lugar_id %}{% if filtro_lugar_id == lugar.idLugar|stringformat:"d" %}selected{% endif %}{% endif %}>{{ lugar.nombre }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="mt-4">
+                      <button type="submit" class="btn btn-primary mr-2">Aplicar filtro</button>
+                      <a href="{% url 'productos:producto-list' %}" class="btn btn-secondary">Limpiar filtro</a>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
 
             <!-- Modal -->
             <div class="modal fade" id="crearProductoModal" tabindex="-1" role="dialog" aria-labelledby="crearProductoLabel" aria-hidden="true">
@@ -208,7 +289,21 @@
                       <div class="form-check" id="status">                         
                         {{ form.categoria.label_tag }}         
                         {{ form.categoria }}                                       
-                      </div>     
+                      </div>
+                      <div class="form-group border rounded p-2 bg-light" id="crearLugarWrapper">
+                        <label for="id_lugar_crear" class="font-weight-bold">Lugar <span class="text-danger">*</span></label>
+                        <select name="lugar" id="id_lugar_crear" class="form-control" required>
+                          <option value="">Seleccione un lugar</option>
+                          {% for lugar in lugares_filtro %}
+                            <option value="{{ lugar.idLugar }}">{{ lugar.nombre }}</option>
+                          {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Al crear el producto se registrará en este lugar con existencia 0.</small>
+                      </div>
+                      <div id="editProductoLugaresWrapper" style="display: none;">
+                        <p class="text-muted small mb-2">Lugar y existencia (solo consulta)</p>
+                        <div id="editProductoLugaresBody"></div>
+                      </div>
                       <div class="form-check" id="status"> 
                         {{ form.habilitado }}   
                         {{ form.habilitado.label_tag }}                                             
@@ -282,26 +377,47 @@
     
 {% block scripts %}
             <script>
+              function escapeHtml(text) {
+                var div = document.createElement('div')
+                div.textContent = text
+                return div.innerHTML
+              }
               $(document).ready(function() {
+              // Panel Filtros full-screen
+              $('#btnFiltros').on('click', function() {
+                $('#panelFiltros').attr('aria-hidden', 'false').css('display', 'flex');
+              });
+              $('.panel-filtros-close').on('click', function() {
+                $('#panelFiltros').attr('aria-hidden', 'true').css('display', 'none');
+              });
+              $('#panelFiltros').on('click', function(e) {
+                if (e.target === this) {
+                  $(this).attr('aria-hidden', 'true').css('display', 'none');
+                }
+              });
+
               $('#crearProductoModal').on('show.bs.modal', function (event) {
-                var button = $(event.relatedTarget) // Botón que abre el modal
+                var button = $(event.relatedTarget)
                 var recipient = button.data('id')
                 var url = button.data('url')
-                var urlUpdate = button.data('urlupdate')                
-                var modal = $(this)                
-                
-                console.log('Recipient:', recipient);
-                console.log('URL:', url);
-                console.log('URL Update:', urlUpdate);  
+                var urlUpdate = button.data('urlupdate')
+                var modal = $(this)
 
                 if(recipient == 1){
                   modal.find('.modal-title').text('Crear Producto')
                   modal.find('form').attr('action', "{% url 'productos:producto-create' %}")
                   modal.find('#id_proveedor').val('')
+                  modal.find('#id_habilitado').prop('checked', true)
+                  $('#crearLugarWrapper').css('display', 'block').show()
+                  $('#id_lugar_crear').prop('required', true).val('')
+                  $('#editProductoLugaresWrapper').hide()
+                  $('#editProductoLugaresBody').empty()
                 } else if(recipient == 2){
                   modal.find('.modal-title').text('Editar Producto')
                   modal.find('form').attr('action', urlUpdate)
-                  
+                  $('#crearLugarWrapper').hide()
+                  $('#id_lugar_crear').prop('required', false).val('')
+                  $('#editProductoLugaresWrapper').show()
 
                   // Traer datos existentes vía AJAX
                   $.ajax({
@@ -311,15 +427,32 @@
                       modal.find('#id_codigo').val(data.codigo)
                       modal.find('#id_nombre').val(data.nombre)
                       modal.find('#id_nombregenerico').val(data.nombregenerico)
-                      modal.find('#id_descripcion').val(data.descripcion)  
+                      modal.find('#id_descripcion').val(data.descripcion)
                       modal.find('#id_precio').val(data.precio)
                       modal.find('#id_maximo').val(data.maximo)
                       modal.find('#id_minimo').val(data.minimo)
                       modal.find('#id_presentacion').val(data.presentacion)
                       modal.find('#id_proveedor').val(data.proveedor)
                       modal.find('#id_medida').val(data.medida)
-                      modal.find('#id_categoria').val(data.categoria) 
+                      modal.find('#id_categoria').val(data.categoria)
                       modal.find('#id_habilitado').prop('checked', data.habilitado)
+                      // Lugar y existencia como categoría e input, ambos bloqueados
+                      var container = $('#editProductoLugaresBody')
+                      container.empty()
+                      if (data.productolugares && data.productolugares.length) {
+                        data.productolugares.forEach(function(pl) {
+                          var lugarNombre = (pl.lugar_nombre || '—')
+                          var existenciaVal = (pl.existencia != null && pl.existencia !== '') ? pl.existencia : '—'
+                          container.append(
+                            '<div class="form-group"><label>Lugar</label>' +
+                            '<select class="form-control" disabled><option selected>' + escapeHtml(lugarNombre) + '</option></select></div>' +
+                            '<div class="form-group"><label>Existencia</label>' +
+                            '<input type="text" class="form-control" value="' + escapeHtml(String(existenciaVal)) + '" disabled readonly></div>'
+                          )
+                        })
+                      } else {
+                        container.append('<p class="text-muted">Sin lugares asociados</p>')
+                      }
                     }
                   })
                 }

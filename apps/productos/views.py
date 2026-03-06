@@ -2,7 +2,8 @@ from django.shortcuts import render
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
-from .models import Categoria, Medida, Derivado, Proveedor, Producto
+from .models import Categoria, Medida, Derivado, Proveedor, Producto, ProductoLugar
+from apps.lugares.models import Lugar
 from .forms import CategoriaForm, MedidaForm, DerivadoForm, ProveedorForm, ProductoForm
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -307,18 +308,34 @@ def proveedor_delete(request, pk):
 
 
 class ProductoListView(ListView):
-    model = Producto
+    model = ProductoLugar
     template_name = 'productos.html'
-    context_object_name = 'productos'
-    paginate_by = 10  # Número de productos por página
+    context_object_name = 'productolugares'
+    paginate_by = 10  # Número de filas por página
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = ProductoForm()  # Añade el formulario al contexto
-        return context  
-    
-    def get_queryset(self):        
-        return Producto.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))  
+        # Lugares activos para el filtro
+        context['lugares_filtro'] = Lugar.objects.filter(
+            Q(eliminado=False) | Q(eliminado__isnull=True)
+        ).order_by('nombre')
+        context['filtro_lugar_id'] = self.request.GET.get('lugar', '')
+        return context
+
+    def get_queryset(self):
+        # Inner join: Producto + ProductoLugar (una fila por cada par producto-lugar)
+        qs = (
+            ProductoLugar.objects
+            .filter(Q(producto__eliminado=False) | Q(producto__eliminado__isnull=True))
+            .select_related('producto', 'producto__proveedor', 'producto__medida', 'producto__categoria', 'lugar')
+            .order_by('producto__id', 'lugar_id')
+        )
+        # Filtro por lugar
+        lugar_id = self.request.GET.get('lugar')
+        if lugar_id:
+            qs = qs.filter(lugar_id=lugar_id)
+        return qs
 
 class ProductoCreateView(CreateView):
     model = Producto
@@ -331,32 +348,56 @@ class ProductoCreateView(CreateView):
         form.instance.habilitado = 1  
         form.instance.es_producto = 1
         form.instance.eliminado = 0  
-        
+
         # Check if request is AJAX
         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             super().form_valid(form)
+            # Crear ProductoLugar con existencia 0 y habilitado True
+            lugar_id = self.request.POST.get('lugar')
+            if lugar_id:
+                ProductoLugar.objects.create(
+                    producto=self.object,
+                    lugar_id=int(lugar_id),
+                    existencia=0,
+                    habilitado=True,
+                )
             return JsonResponse({'success': True, 'message': 'Producto creado exitosamente'})
         else:
-            return super().form_valid(form)
+            super().form_valid(form)
+            lugar_id = self.request.POST.get('lugar')
+            if lugar_id:
+                ProductoLugar.objects.create(
+                    producto=self.object,
+                    lugar_id=int(lugar_id),
+                    existencia=0,
+                    habilitado=True,
+                )
+            return redirect(self.success_url)
         
 class ProductoUpdateView(UpdateView):
     model = Producto
     form_class = ProductoForm
     template_name = 'producto_form.html'  
     success_url = reverse_lazy('productos:producto-list')
-    
+
     def form_valid(self, form):
-        # Check if request is AJAX
         form.instance.es_producto = 1
         if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             super().form_valid(form)
+            # Si se deshabilita el producto, deshabilitar también ProductoLugar
+            if not form.instance.habilitado:
+                ProductoLugar.objects.filter(producto=self.object).update(habilitado=False)
             return JsonResponse({'success': True, 'message': 'Producto actualizado exitosamente'})
         else:
-            return super().form_valid(form)
+            super().form_valid(form)
+            if not form.instance.habilitado:
+                ProductoLugar.objects.filter(producto=self.object).update(habilitado=False)
+            return redirect(self.success_url)
         
 def producto_detail(request, pk):
     producto = Producto.objects.get(pk=pk)
-    data={
+    productolugares = ProductoLugar.objects.filter(producto=producto).select_related('lugar')
+    data = {
         "id": producto.id,
         'codigo': producto.codigo,
         'nombre': producto.nombre,
@@ -368,10 +409,19 @@ def producto_detail(request, pk):
         'minimo': producto.minimo,
         'composicion': producto.composicion,
         'presentacion': producto.presentacion,
-        'es_producto': producto.es_producto,        
+        'es_producto': producto.es_producto,
         'proveedor': producto.proveedor.id if producto.proveedor else None,
         'medida': producto.medida.id if producto.medida else None,
         'categoria': producto.categoria.id if producto.categoria else None,
+        'productolugares': [
+            {
+                'lugar_id': pl.lugar_id,
+                'lugar_nombre': pl.lugar.nombre if pl.lugar else '—',
+                'existencia': pl.existencia,
+                'habilitado': pl.habilitado,
+            }
+            for pl in productolugares
+        ],
     }
     return JsonResponse(data)
 

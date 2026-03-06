@@ -65,8 +65,16 @@ class Producto(models.Model):  # Renombrado de Medicamento
 class ProductoLugar(models.Model):  # Renombrado de MedicamentoLugar
     existencia = models.FloatField(null=True, blank=True)
     habilitado = models.BooleanField(null=True)
-    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
-    
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='productolugar_set')
+    lugar = models.ForeignKey(
+        'lugares.Lugar',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='productolugar_set',
+        db_column='Lugar_idLugar',
+    )
+
 
 class Lote(models.Model):
     existencia = models.FloatField(null=True, blank=True)
