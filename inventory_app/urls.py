@@ -6,5 +6,5 @@ urlpatterns = [
     path('home/', include('apps.home.urls','home')),
     path('productos/', include('apps.productos.urls','productos')),
     path('lugares/', include('apps.lugares.urls','lugares')),
-    # Include other app URLs here
+    path('compras/', include('apps.compras.urls', 'compras')),
 ]

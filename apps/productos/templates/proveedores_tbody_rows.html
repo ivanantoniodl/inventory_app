@@ -1,0 +1,12 @@
+{% for proveedor in proveedores %}
+<tr>
+  <td>{{ proveedor.nombre }}</td>
+  <td>{{ proveedor.direccion }}</td>
+  <td>{{ proveedor.nit }}</td>
+  <td>{% if proveedor.habilitado %}<i class="mdi mdi-check"></i>{% else %}<i class="mdi mdi-close"></i>{% endif %}</td>
+  <td>
+    <button type="button" class="btn btn-info btn-sm btn-editar" data-toggle="modal" data-target="#crearProveedorModal" data-id="2" data-url="{% url 'productos:proveedor-detail' proveedor.id %}" data-urlupdate="{% url 'productos:proveedor-update' proveedor.id %}"><i class="ti-pencil"></i></button>
+    <button type="button" class="btn btn-danger btn-sm btn-eliminar" data-id="{{ proveedor.id }}" data-nombre="{{ proveedor.nombre }}"><i class="ti-trash"></i></button>
+  </td>
+</tr>
+{% endfor %}

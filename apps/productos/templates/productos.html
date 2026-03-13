@@ -36,16 +36,83 @@
   .panel-filtros-body {
     padding: 1.25rem;
   }
+  /* Botones e íconos más pequeños en el listado de productos */
+  #productos-tbody .btn {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.8rem;
+  }
+  #productos-tbody .btn i {
+    font-size: 0.85rem;
+  }
+  /* Filas expandibles: fila de detalle */
+  .product-details-row {
+    background: #f8f9fa;
+  }
+  .product-details-row td {
+    padding: 0 !important;
+    border-top: none;
+    vertical-align: top;
+  }
+  .product-details-content {
+    padding: 0.6rem 0.75rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .product-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+  }
+  .product-details-grid .detail-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .product-details-grid .detail-label {
+    font-weight: 600;
+    color: #495057;
+    margin-right: 0.35rem;
+  }
+  @media (max-width: 576px) {
+    .product-details-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* Chevron expandir/contraer */
+  .btn-expand-row .chevron-icon {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+  .btn-expand-row.expanded .chevron-icon {
+    transform: rotate(180deg);
+  }
+  .product-row .td-ellipsis {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (max-width: 768px) {
+    .product-row .td-ellipsis {
+      max-width: 100px;
+    }
+  }
 </style> 
 
         <div class="container-fluid">
           <div class="row">
             <div class="col-lg-12 grid-margin stretch-card">
               <div class="card">
-                <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                      <h4 class="card-title mb-1">Listado de productos</h4>
+                <div class="col-12 col-xl-12 mb-4 card-body py-4 px-4">
+                  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                    <div class="d-flex align-items-center flex-wrap">
+                      <h4 class="card-title mb-1 mr-3">Listado de productos</h4>
+                      <form method="get" action="{% url 'productos:producto-list' %}" id="formSearchProducto" class="d-inline-flex align-items-center mr-2">
+                        {% if request.GET.lugar %}
+                        <input type="hidden" name="lugar" value="{{ request.GET.lugar }}">
+                        {% endif %}
+                        <input type="text" name="search" id="searchProducto" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ filtro_search }}" style="max-width: 220px;">
+                      </form>
                       <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFiltros" aria-label="Filtros">
                         Filtros
                       </button>
@@ -57,107 +124,20 @@
                     </div>
                   </div>
                   <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped table-productos">
                       <thead>
                         <tr>
-                          <th>
-                            Codigo
-                          </th>
-                          <th>
-                            Nombre
-                          </th>
-                          <th>
-                            Precio
-                          </th>
-                          <th>
-                            Status
-                          </th>
-                          <th>
-                            Mínimo
-                          </th>                          
-                          <th>
-                            Máximo
-                          </th>      
-                          <th>
-                            Proveedor
-                          </th>      
-                          <th>
-                            Medida 
-                          </th> 
-                          <th>
-                            Categoría
-                          </th>
-                          <th>
-                            Lugar
-                          </th>
-                          <th>
-                            Existencia
-                          </th>
-                          <th>
-                            Acciones
-                          </th>
+                          <th>Código</th>
+                          <th>Nombre</th>
+                          <th>Precio</th>
+                          <th>Stock</th>
+                          <th>Proveedor</th>
+                          <th>Estado</th>
+                          <th></th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {% for pl in productolugares %}
-                        <tr>
-                          <td>
-                            {{ pl.producto.codigo }}
-                          </td>
-                          <td>
-                            {{ pl.producto.nombre }}
-                          </td>
-                          <td>
-                            {{ pl.producto.precio|floatformat:2 }}
-                          </td>
-                          <td>
-                            {% if pl.producto.habilitado %}
-                              <i class="mdi mdi-check"></i>
-                            {% else %}
-                              <i class="mdi mdi-close"></i>
-                            {% endif %}
-                          </td>
-                          <td>
-                            {{ pl.producto.minimo }}
-                          </td>
-                          <td>
-                            {{ pl.producto.maximo }}
-                          </td>
-                          <td>
-                            {{ pl.producto.proveedor.nombre|default:"—" }}
-                          </td>
-                          <td>
-                            {{ pl.producto.medida.medida }}
-                          </td>
-                          <td>
-                            {{ pl.producto.categoria.categoria|default:"—" }}
-                          </td>
-                          <td>
-                            {% if pl.lugar %}{{ pl.lugar.nombre }}{% else %}—{% endif %}
-                          </td>
-                          <td>
-                            {{ pl.existencia|default:"—" }}
-                          </td>
-                          <td>
-                            <button type="button" class="btn btn-info btn-sm btn-editar"
-                                    data-toggle="modal"
-                                    data-target="#crearProductoModal"
-                                    data-id="2"
-                                    data-url="{% url 'productos:producto-detail' pl.producto.id %}"
-                                    data-urlupdate="{% url 'productos:producto-update' pl.producto.id %}">
-                              <i class="ti-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm btn-eliminar"
-                                    data-id="{{ pl.producto.id }}"
-                                    data-nombre="{{ pl.producto.nombre }}">
-                              <i class="ti-trash"></i>
-                            </button>
-                            <button type="button" class="btn btn-success btn-sm btn-ver-lotes" data-toggle="modal" data-target="#verLotesModal" data-producto-id="{{ pl.producto.id }}" data-producto-nombre="{{ pl.producto.nombre }}">
-                              Ver Lotes
-                            </button>
-                          </td>
-                        </tr>
-                        {% endfor %}                      
+                      <tbody id="productos-tbody">
+                        {% include "productos_tbody_rows.html" %}
                       </tbody>
                     </table>
                   </div>
@@ -165,12 +145,12 @@
               </div>
             </div>   
 
-            <div class="container mt-5">
+            <div class="container mt-5" id="pagination-wrap">
               <nav aria-label="Page navigation example">
                 <ul class="pagination justify-content-center">
                   {% if page_obj.has_previous %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}">Anterior</a>
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Anterior</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
@@ -185,14 +165,14 @@
                       </li>
                     {% else %}
                       <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}">{{ num }}</a>
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">{{ num }}</a>
                       </li>
                     {% endif %}
                   {% endfor %}
 
                   {% if page_obj.has_next %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}">Siguiente</a>
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Siguiente</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
@@ -319,7 +299,7 @@
             </div>
             <!-- Modal Ver Lotes -->
             <div class="modal fade" id="verLotesModal" tabindex="-1" role="dialog" aria-labelledby="verLotesLabel" aria-hidden="true">
-              <div class="modal-dialog" role="document" style="max-width: 700px;">
+              <div class="modal-dialog" role="document" style="max-width: 620px;">
                 <div class="modal-content">
                   <!-- Modal Header -->
                   <div class="modal-header">
@@ -329,41 +309,58 @@
                     </button>
                   </div>
                   <!-- Modal Body -->
-                  <div class="modal-body">
+                  <div class="modal-body py-3 px-3">
                     <div class="container-fluid">
                       <div class="row">
-                        <div class="col-lg-12 grid-margin stretch-card">
-                          <div class="card">
-                            <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
-                              <h4 class="card-title">Listado de lotes</h4>                            
+                        <div class="col-12">
+                          <div class="card border-0">
+                            <div class="card-body py-2 px-2">
                             <div class="table-responsive" id="lotes-lista">
-                              <table class="table table-striped">
+                              <table class="table table-striped table-sm mb-0">
                                 <thead>
                                   <tr>
-                                    <th>
-                                      Lote
-                                    </th>
-                                    <th>
-                                      Costo
-                                    </th>
-                                    <th>
-                                      Costo con descuento
-                                    </th>
-                                    <th>
-                                      Fecha de ingreso
-                                    </th>
-                                    <th>
-                                      Fecha de vencimiento
-                                    </th>
-                                    <th>
-                                      Existencia
-                                    </th>                       
+                                    <th>Lote</th>
+                                    <th>Costo</th>
+                                    <th>C. desc.</th>
+                                    <th>F. ingreso</th>
+                                    <th>F. venc.</th>
+                                    <th>Exist.</th>
                                   </tr>
                                 </thead>
                                 <tbody id="tablaLotes">                                                       
                                 </tbody>
                               </table>
-                            </div>                            
+                            </div>
+                            <div id="primer-ingreso-wrap" class="mt-2" style="display: none;">
+                              <button type="button" class="btn btn-primary btn-sm btn-primer-ingreso" id="btnPrimerIngreso">Primer Ingreso</button>
+                              <div id="form-primer-ingreso-wrap" style="display: none; font-size: 0.9rem;" class="mt-2 border rounded p-2 bg-light">
+                                <h6 class="mb-2">Insertar Lote</h6>
+                                <form id="formPrimerIngreso">
+                                  {% csrf_token %}
+                                  <div class="form-group form-row py-0 mb-1">
+                                    <label class="col-5 col-form-label col-form-label-sm" for="plExistencia">Existencia</label>
+                                    <div class="col-7"><input type="number" step="any" min="0" class="form-control form-control-sm" id="plExistencia" name="existencia" required></div>
+                                  </div>
+                                  <div class="form-group form-row py-0 mb-1">
+                                    <label class="col-5 col-form-label col-form-label-sm" for="plCosto">Costo</label>
+                                    <div class="col-7"><input type="number" step="any" min="0" class="form-control form-control-sm" id="plCosto" name="costo" required></div>
+                                  </div>
+                                  <div class="form-group form-row py-0 mb-1">
+                                    <label class="col-5 col-form-label col-form-label-sm" for="plCostoDescuento">Costo desc.</label>
+                                    <div class="col-7"><input type="number" step="any" class="form-control form-control-sm" id="plCostoDescuento" name="costodescuento" readonly></div>
+                                  </div>
+                                  <div class="form-group form-row py-0 mb-1">
+                                    <label class="col-5 col-form-label col-form-label-sm" for="plFechaVencimiento">F. vencimiento</label>
+                                    <div class="col-7"><input type="date" class="form-control form-control-sm" id="plFechaVencimiento" name="fecha_vencimiento" required></div>
+                                  </div>
+                                  <div class="form-row mt-1">
+                                    <button type="submit" class="btn btn-success btn-sm mr-1">Insertar</button>
+                                    <button type="button" class="btn btn-secondary btn-sm btn-cancelar-primer-ingreso">Cancelar</button>
+                                  </div>
+                                </form>
+                                <div id="primer-ingreso-errors" class="text-danger small mt-1" style="display: none;"></div>
+                              </div>
+                            </div>
                           </div>
                         </div>  
                       </div>
@@ -395,6 +392,56 @@
                   $(this).attr('aria-hidden', 'true').css('display', 'none');
                 }
               });
+
+              // Búsqueda por nombre con debounce 300 ms (actualiza solo el listado por AJAX, sin recargar la página)
+              var searchDebounce
+              function loadProductosList(page) {
+                page = page || 1
+                var params = { page: page }
+                var search = $('#searchProducto').val()
+                if (search) params.search = search
+                var lugar = $('input[name="lugar"]', '#formSearchProducto').val()
+                if (lugar) params.lugar = lugar
+                $.ajax({
+                  url: "{% url 'productos:producto-list' %}",
+                  data: params,
+                  headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                  success: function(data) {
+                    $('#productos-tbody').html(data.tbody)
+                    $('#pagination-wrap').html(data.pagination)
+                  }
+                })
+              }
+              $('#searchProducto').on('input', function() {
+                clearTimeout(searchDebounce)
+                searchDebounce = setTimeout(function() {
+                  loadProductosList(1)
+                }, 300)
+              })
+              $(document).on('click', '#pagination-wrap .page-link-prev, #pagination-wrap .page-link-num, #pagination-wrap .page-link-next', function(e) {
+                e.preventDefault()
+                var page = $(this).data('page')
+                if (page) loadProductosList(page)
+              })
+
+              // Expandir / contraer fila de detalle (solo una abierta a la vez)
+              $(document).on('click', '#productos-tbody .btn-expand-row', function() {
+                var btn = $(this)
+                var row = btn.closest('tr.product-row')
+                var detailsRow = row.next('tr.product-details-row')
+                var content = detailsRow.find('.product-details-content')
+                var isExpanded = btn.hasClass('expanded')
+                // Cerrar cualquier otra fila abierta
+                $('#productos-tbody .btn-expand-row.expanded').not(btn).removeClass('expanded')
+                $('#productos-tbody .product-details-content').not(content).slideUp(200)
+                if (isExpanded) {
+                  content.slideUp(200)
+                  btn.removeClass('expanded').attr('aria-expanded', 'false')
+                } else {
+                  content.slideDown(200)
+                  btn.addClass('expanded').attr('aria-expanded', 'true')
+                }
+              })
 
               $('#crearProductoModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget)
@@ -495,71 +542,128 @@
               });
               
               // Handle Ver Lotes modal
+              var modalLotesProductoId = null;
+              var modalLotesProductolugarId = null;
+
+              function loadLotesEnModal(productoId, productolugarId) {
+                var url = '/productos/productos/' + productoId + '/lotes/';
+                if (productolugarId) url += '?productolugar_id=' + productolugarId;
+                return $.ajax({
+                  url: url,
+                  method: 'GET',
+                  success: function(data) {
+                    var tbody = $('#tablaLotes');
+                    tbody.empty();
+                    if (data.lotes && data.lotes.length > 0) {
+                      data.lotes.forEach(function(lote) {
+                        tbody.append(
+                          '<tr><td>' + (lote.id || 'N/A') + '</td>' +
+                          '<td>Q' + (lote.costo ? parseFloat(lote.costo).toFixed(2) : '0.00') + '</td>' +
+                          '<td>Q' + (lote.costodescuento ? parseFloat(lote.costodescuento).toFixed(2) : '0.00') + '</td>' +
+                          '<td>' + (lote.fechaingreso || 'N/A') + '</td>' +
+                          '<td>' + (lote.fecha_vencimiento || 'N/A') + '</td>' +
+                          '<td>' + (lote.existencia || 'N/A') + '</td></tr>'
+                        );
+                      });
+                      $('#primer-ingreso-wrap').hide();
+                    } else {
+                      tbody.append('<tr><td colspan="6" class="text-center">No hay lotes registrados para este producto</td></tr>');
+                      if (data.productolugar_id) {
+                        $('#primer-ingreso-wrap').show();
+                        $('#btnPrimerIngreso').show();
+                        $('#form-primer-ingreso-wrap').hide();
+                        $('#primer-ingreso-errors').hide().empty();
+                      } else {
+                        $('#primer-ingreso-wrap').hide();
+                      }
+                    }
+                  },
+                  error: function() {
+                    var tbody = $('#tablaLotes');
+                    tbody.empty();
+                    tbody.append('<tr><td colspan="6" class="text-center text-danger">Error al cargar los lotes</td></tr>');
+                    $('#primer-ingreso-wrap').hide();
+                  }
+                });
+              }
+
               $('#verLotesModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget);
                 var productoId = button.data('producto-id');
                 var productoNombre = button.data('producto-nombre');
+                var productolugarId = button.data('productolugar-id');
                 var modal = $(this);
-                
-                console.log('Producto ID:', productoId);
-                console.log('Producto Nombre:', productoNombre);
-                
-                // Ensure modal dialog maintains proper size
-                modal.find('.modal-dialog').css({
-                  'min-width': '900px',
-                  'max-width': '95vw'
-                });
-                
-                // Update modal title
+
+                modal.data('producto-id', productoId);
+                modal.data('productolugar-id', productolugarId);
+                modalLotesProductoId = productoId;
+                modalLotesProductolugarId = productolugarId;
+
+                modal.find('.modal-dialog').css({ 'max-width': '620px' });
                 modal.find('.modal-title').text('Lotes de ' + productoNombre);
-                modal.find('.card-title').text('Listado de lotes - ' + productoNombre);
-                
-                // Load lotes data via AJAX
-                var url = '/productos/productos/' + productoId + '/lotes/';
-                
+
+                loadLotesEnModal(productoId, productolugarId);
+              });
+
+              $('#btnPrimerIngreso').on('click', function() {
+                $(this).hide();
+                $('#form-primer-ingreso-wrap').show();
+                $('#formPrimerIngreso')[0].reset();
+                $('#plCostoDescuento').val('');
+                $('#primer-ingreso-errors').hide().empty();
+              });
+
+              $('#plCosto').on('input', function() {
+                $('#plCostoDescuento').val($(this).val());
+              });
+
+              $('.btn-cancelar-primer-ingreso').on('click', function() {
+                $('#form-primer-ingreso-wrap').hide();
+                $('#btnPrimerIngreso').show();
+                $('#primer-ingreso-errors').hide().empty();
+              });
+
+              $('#formPrimerIngreso').on('submit', function(e) {
+                e.preventDefault();
+                var productolugarId = $('#verLotesModal').data('productolugar-id');
+                if (!productolugarId) {
+                  $('#primer-ingreso-errors').text('No se puede determinar el producto-lugar.').show();
+                  return;
+                }
+                var url = '/productos/productolugares/' + productolugarId + '/lote-primer-ingreso/';
+                var formData = $(this).serialize();
+                $('#primer-ingreso-errors').hide().empty();
                 $.ajax({
                   url: url,
-                  method: 'GET',
+                  method: 'POST',
+                  data: formData,
+                  headers: { 'X-Requested-With': 'XMLHttpRequest' },
                   success: function(data) {
-                    console.log('Lotes data:', data);
-                    var tbody = $('#tablaLotes');
-                    tbody.empty();
-                    
-                    if (data.lotes && data.lotes.length > 0) {
-                      data.lotes.forEach(function(lote) {
-                        tbody.append(
-                          '<tr>' +
-                            '<td>' + (lote.id || 'N/A') + '</td>' +
-                            '<td>Q' + (lote.costo ? parseFloat(lote.costo).toFixed(2) : '0.00') + '</td>' +
-                            '<td>Q' + (lote.costodescuento ? parseFloat(lote.costodescuento).toFixed(2) : '0.00') + '</td>' +
-                            '<td>' + (lote.fechaingreso || 'N/A') + '</td>' +
-                            '<td>' + (lote.fecha_vencimiento || 'N/A') + '</td>' +
-                            '<td>' + (lote.existencia || 'N/A') + '</td>' +
-                          '</tr>'
-                        );
-                      });
+                    if (data.success) {
+                      var productoId = $('#verLotesModal').data('producto-id');
+                      loadLotesEnModal(productoId, productolugarId);
+                      $('#form-primer-ingreso-wrap').hide();
+                      $('#btnPrimerIngreso').show();
+                      $('#formPrimerIngreso')[0].reset();
+                      $('#plCostoDescuento').val('');
                     } else {
-                      tbody.append(
-                        '<tr><td colspan="6" class="text-center">No hay lotes registrados para este producto</td></tr>'
-                      );
+                      $('#primer-ingreso-errors').html((data.errors || []).join('<br>')).show();
                     }
                   },
-                  error: function(xhr, status, error) {
-                    console.error('Error loading lotes:', error);
-                    var tbody = $('#tablaLotes');
-                    tbody.empty();
-                    tbody.append(
-                      '<tr><td colspan="6" class="text-center text-danger">Error al cargar los lotes</td></tr>'
-                    );
+                  error: function(xhr) {
+                    var msg = 'Error al guardar el lote.';
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                      msg = xhr.responseJSON.errors.join('<br>');
+                    }
+                    $('#primer-ingreso-errors').html(msg).show();
                   }
                 });
               });
 
-              // Eliminar Producto
-              $('.btn-eliminar').on('click', function() {
+              // Eliminar Producto (delegado para filas cargadas por AJAX)
+              $(document).on('click', '.btn-eliminar', function() {
                 var id = $(this).data('id');
                 var nombre = $(this).data('nombre');
-                
                 if (confirm('¿Está seguro de que desea eliminar el producto "' + nombre + '"?')) {
                   window.location.href = '/productos/productos/delete/' + id + '/';
                 }

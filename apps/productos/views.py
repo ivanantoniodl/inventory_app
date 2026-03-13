@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
@@ -22,11 +23,29 @@ class CategoriaListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = CategoriaForm()  # Añade el formulario al contexto
+        context['form'] = CategoriaForm()
+        context['filtro_search'] = self.request.GET.get('search', '')
         return context
-    
-    def get_queryset(self):        
-        return Categoria.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+
+    def get_queryset(self):
+        qs = Categoria.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            qs = qs.filter(categoria__icontains=search)
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        allow_empty = self.get_allow_empty()
+        if not allow_empty and not self.object_list:
+            from django.http import Http404
+            raise Http404
+        context = self.get_context_data()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            tbody_html = render_to_string('categoria_tbody_rows.html', context)
+            pagination_html = render_to_string('categoria_pagination.html', context)
+            return JsonResponse({'tbody': tbody_html, 'pagination': pagination_html})
+        return self.render_to_response(context)
 
 class CategoriaCreateView(CreateView):
     model = Categoria
@@ -231,11 +250,29 @@ class ProveedorListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = ProveedorForm()  # Añade el formulario al contexto
-        return context  
-    
-    def get_queryset(self):        
-        return Proveedor.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+        context['form'] = ProveedorForm()
+        context['filtro_search'] = self.request.GET.get('search', '')
+        return context
+
+    def get_queryset(self):
+        qs = Proveedor.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            qs = qs.filter(nombre__icontains=search)
+        return qs
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        allow_empty = self.get_allow_empty()
+        if not allow_empty and not self.object_list:
+            from django.http import Http404
+            raise Http404
+        context = self.get_context_data()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            tbody_html = render_to_string('proveedores_tbody_rows.html', context)
+            pagination_html = render_to_string('proveedores_pagination.html', context)
+            return JsonResponse({'tbody': tbody_html, 'pagination': pagination_html})
+        return self.render_to_response(context)
     
 class ProveedorCreateView(CreateView):
     model = Proveedor
@@ -321,6 +358,7 @@ class ProductoListView(ListView):
             Q(eliminado=False) | Q(eliminado__isnull=True)
         ).order_by('nombre')
         context['filtro_lugar_id'] = self.request.GET.get('lugar', '')
+        context['filtro_search'] = self.request.GET.get('search', '')
         return context
 
     def get_queryset(self):
@@ -335,7 +373,24 @@ class ProductoListView(ListView):
         lugar_id = self.request.GET.get('lugar')
         if lugar_id:
             qs = qs.filter(lugar_id=lugar_id)
+        # Filtro por nombre de producto
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            qs = qs.filter(producto__nombre__icontains=search)
         return qs
+
+    def get(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        allow_empty = self.get_allow_empty()
+        if not allow_empty and not self.object_list:
+            from django.http import Http404
+            raise Http404
+        context = self.get_context_data()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            tbody_html = render_to_string('productos_tbody_rows.html', context)
+            pagination_html = render_to_string('productos_pagination.html', context)
+            return JsonResponse({'tbody': tbody_html, 'pagination': pagination_html})
+        return self.render_to_response(context)
 
 class ProductoCreateView(CreateView):
     model = Producto
@@ -433,19 +488,28 @@ def producto_delete(request, pk):
     return redirect('productos:producto-list')
 
 def producto_lotes(request, pk):
-    """Get all lotes for a specific producto"""
+    """Get lotes for a product. If productolugar_id in GET, filter by that ProductoLugar."""
     from .models import Lote, ProductoLugar
-    
-    # Get the producto
+
     producto = get_object_or_404(Producto, pk=pk)
-    
-    # Get all ProductoLugar entries for this producto
     producto_lugares = ProductoLugar.objects.filter(producto=producto)
-    
-    # Get all lotes for these ProductoLugar entries
-    lotes = Lote.objects.filter(productolugar__in=producto_lugares)
-    
-    # Build the response data
+
+    productolugar_id = request.GET.get('productolugar_id', '').strip()
+    if productolugar_id:
+        try:
+            pl = producto_lugares.get(pk=int(productolugar_id))
+        except (ValueError, ProductoLugar.DoesNotExist):
+            pl = None
+        if pl is not None:
+            lotes = Lote.objects.filter(productolugar=pl)
+            productolugar_id_out = pl.id
+        else:
+            lotes = Lote.objects.filter(productolugar__in=producto_lugares)
+            productolugar_id_out = None
+    else:
+        lotes = Lote.objects.filter(productolugar__in=producto_lugares)
+        productolugar_id_out = None
+
     lotes_data = []
     for lote in lotes:
         lotes_data.append({
@@ -458,8 +522,77 @@ def producto_lotes(request, pk):
             'lotetotal': lote.lotetotal,
             'fecha_vencimiento': lote.fecha_vencimiento.strftime('%Y-%m-%d') if lote.fecha_vencimiento else None,
         })
-    
-    return JsonResponse({
+
+    payload = {
         'producto': producto.nombre,
-        'lotes': lotes_data
+        'lotes': lotes_data,
+    }
+    if productolugar_id_out is not None:
+        payload['productolugar_id'] = productolugar_id_out
+    return JsonResponse(payload)
+
+
+def lote_primer_ingreso(request, productolugar_pk):
+    """POST: crea un Lote de primer ingreso para el ProductoLugar indicado."""
+    from .models import Lote
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'errors': ['Método no permitido']}, status=405)
+
+    productolugar = get_object_or_404(ProductoLugar, pk=productolugar_pk)
+
+    existencia = request.POST.get('existencia')
+    costo = request.POST.get('costo')
+    fecha_vencimiento = request.POST.get('fecha_vencimiento')
+
+    errors = []
+    if existencia is None or existencia == '':
+        errors.append('Existencia es requerida.')
+    if costo is None or costo == '':
+        errors.append('Costo es requerido.')
+    if fecha_vencimiento is None or fecha_vencimiento == '':
+        errors.append('Fecha de vencimiento es requerida.')
+
+    if errors:
+        return JsonResponse({'success': False, 'errors': errors}, status=400)
+
+    try:
+        existencia_f = float(existencia.replace(',', '.'))
+        costo_f = float(costo.replace(',', '.'))
+    except ValueError:
+        return JsonResponse({'success': False, 'errors': ['Existencia y costo deben ser numéricos.']}, status=400)
+
+    if existencia_f < 0:
+        return JsonResponse({'success': False, 'errors': ['Existencia no puede ser negativa.']}, status=400)
+
+    try:
+        from datetime import datetime
+        fecha_venc = datetime.strptime(fecha_vencimiento.strip(), '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'success': False, 'errors': ['Fecha de vencimiento inválida (use AAAA-MM-DD).']}, status=400)
+
+    costodescuento = costo_f
+    fechaingreso = timezone.now().date()
+
+    lote = Lote.objects.create(
+        existencia=existencia_f,
+        costo=costo_f,
+        costodescuento=costodescuento,
+        fechaingreso=fechaingreso,
+        terminado=0,
+        lotetotal=existencia_f,
+        fecha_vencimiento=fecha_venc,
+        productolugar=productolugar,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'lote': {
+            'id': lote.id,
+            'existencia': lote.existencia,
+            'costo': lote.costo,
+            'costodescuento': lote.costodescuento,
+            'fechaingreso': lote.fechaingreso.strftime('%Y-%m-%d'),
+            'fecha_vencimiento': lote.fecha_vencimiento.strftime('%Y-%m-%d'),
+        },
     })
