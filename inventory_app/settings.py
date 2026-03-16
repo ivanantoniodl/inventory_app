@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'apps.productos',
     'apps.home',
     'apps.lugares',
+    'apps.compras',
 ]
 
 MIDDLEWARE = [

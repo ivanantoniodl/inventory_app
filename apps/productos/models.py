@@ -1,5 +1,7 @@
 # Create your models here.
+import socket
 from django.db import models
+from django.utils import timezone
 
 class Categoria(models.Model):
     categoria = models.CharField(max_length=45, null=True, blank=True)
@@ -65,8 +67,16 @@ class Producto(models.Model):  # Renombrado de Medicamento
 class ProductoLugar(models.Model):  # Renombrado de MedicamentoLugar
     existencia = models.FloatField(null=True, blank=True)
     habilitado = models.BooleanField(null=True)
-    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
-    
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name='productolugar_set')
+    lugar = models.ForeignKey(
+        'lugares.Lugar',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='productolugar_set',
+        db_column='Lugar_idLugar',
+    )
+
 
 class Lote(models.Model):
     existencia = models.FloatField(null=True, blank=True)
@@ -77,3 +87,91 @@ class Lote(models.Model):
     lotetotal = models.FloatField(null=True, blank=True)
     fecha_vencimiento = models.DateField(null=True, blank=True)
     productolugar = models.ForeignKey(ProductoLugar, on_delete=models.PROTECT)
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            self._crear_movimientos_primer_ingreso()
+
+    def _crear_movimientos_primer_ingreso(self):
+        """Crea MovimientoProducto y MovimientoLote para el primer ingreso del lote."""
+        cantidad = (self.lotetotal is not None and self.lotetotal) or (self.existencia is not None and self.existencia) or 0
+        costo = (self.costo is not None and self.costo) or 0
+        try:
+            host = socket.gethostname()
+        except Exception:
+            host = None
+
+        mov = MovimientoProducto.objects.create(
+            cant_entrada=cantidad,
+            cant_salida=0,
+            ultima_existencia=0,
+            fechahora=timezone.now(),
+            host=host,
+            motivo='Primer_Ingreso',
+            costo=costo,
+            detalle_compra_id=None,
+            productolugar=self.productolugar,
+            detalle_factura_id=None,
+            detalle_salida_id=None,
+        )
+        MovimientoLote.objects.create(
+            cant_entrada=cantidad,
+            cant_salida=0,
+            ultima_existencia=0,
+            lote=self,
+            movimiento_producto=mov,
+        )
+        # Actualizar existencia del ProductoLugar
+        self.productolugar.existencia = (self.productolugar.existencia or 0) + cantidad
+        self.productolugar.save(update_fields=['existencia'])
+
+
+class MovimientoProducto(models.Model):
+    cant_entrada = models.FloatField(null=True, blank=True)
+    cant_salida = models.FloatField(null=True, blank=True)
+    ultima_existencia = models.FloatField(null=True, blank=True)
+    fechahora = models.DateTimeField(null=True, blank=True)
+    host = models.CharField(max_length=45, null=True, blank=True)
+    motivo = models.CharField(max_length=255, null=True, blank=True)
+    costo = models.FloatField(null=True, blank=True, default=0)
+    detalle_compra_id = models.BigIntegerField(null=True, blank=True)  # FK cuando exista DetalleCompra
+    productolugar = models.ForeignKey(
+        ProductoLugar,
+        on_delete=models.PROTECT,
+        related_name='movimientoproducto_set',
+    )
+    detalle_factura_id = models.BigIntegerField(null=True, blank=True)  # FK cuando exista DetalleFactura
+    detalle_salida_id = models.BigIntegerField(null=True, blank=True)  # FK cuando exista DetalleSalida
+
+
+class MovimientoLote(models.Model):
+    cant_entrada = models.FloatField(null=True, blank=True)
+    cant_salida = models.FloatField(null=True, blank=True)
+    ultima_existencia = models.FloatField(null=True, blank=True)
+    lote = models.ForeignKey(Lote, on_delete=models.PROTECT, related_name='movimientolote_set')
+    movimiento_producto = models.ForeignKey(
+        MovimientoProducto,
+        on_delete=models.PROTECT,
+        related_name='movimientolote_set',
+    )
+
+
+class MovimientoLugar(models.Model):
+    cant_entrada = models.CharField(max_length=45, null=True, blank=True)
+    entregado = models.BooleanField(null=True, blank=True)
+    anulado = models.BooleanField(null=True, blank=True)
+    movimiento_producto_origen = models.ForeignKey(
+        MovimientoProducto,
+        on_delete=models.PROTECT,
+        related_name='movimientos_destino',
+        db_column='MovimientoProducto_id_a_',
+    )
+    movimiento_producto_destino = models.ForeignKey(
+        MovimientoProducto,
+        on_delete=models.PROTECT,
+        related_name='movimientos_origen',
+        db_column='MovimientoProducto_id_b_',
+    )
+    detalle_factura_id = models.BigIntegerField(null=True, blank=True)  # FK cuando exista DetalleFactura

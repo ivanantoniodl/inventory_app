@@ -1,0 +1,10 @@
+{% for categoria in categorias %}
+<tr>
+  <td>{{ categoria.categoria }}</td>
+  <td>{% if categoria.habilitado %}<i class="mdi mdi-check"></i>{% else %}<i class="mdi mdi-close"></i>{% endif %}</td>
+  <td>
+    <button type="button" class="btn btn-info btn-sm btn-editar" data-toggle="modal" data-target="#crearCategoriaModal" data-id="2" data-url="{% url 'productos:categoria-detail' categoria.id %}" data-urlupdate="{% url 'productos:categoria-update' categoria.id %}"><i class="ti-pencil"></i></button>
+    <button type="button" class="btn btn-danger btn-sm btn-eliminar" data-id="{{ categoria.id }}" data-nombre="{{ categoria.categoria }}"><i class="ti-trash"></i></button>
+  </td>
+</tr>
+{% endfor %}

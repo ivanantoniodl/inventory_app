@@ -7,9 +7,14 @@
             <div class="col-lg-12 grid-margin stretch-card">
               <div class="card">
                 <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
-                  <h4 class="card-title">Listado de categorías</h4>
-                  <div class="row mb-3">
-                    <div class="col-12 d-flex justify-content-end">
+                  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                    <div class="d-flex align-items-center flex-wrap">
+                      <h4 class="card-title mb-1 mr-3">Listado de categorías</h4>
+                      <form method="get" action="{% url 'productos:categoria-list' %}" id="formSearchCategoria" class="d-inline-flex align-items-center mr-2">
+                        <input type="text" name="search" id="searchCategoria" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ filtro_search }}" style="max-width: 220px;">
+                      </form>
+                    </div>
+                    <div>
                       <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearCategoriaModal" data-id="1">
                         Crear Categoría
                       </button>
@@ -19,18 +24,12 @@
                     <table class="table table-striped">
                       <thead>
                         <tr>
-                          <th>
-                            Categoría
-                          </th>
-                          <th>
-                            Status
-                          </th>
-                          <th>
-                            Acciones
-                          </th>                          
+                          <th>Categoría</th>
+                          <th>Status</th>
+                          <th>Acciones</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody id="categorias-tbody">
                         {% for categoria in categorias %}
                         <tr>                          
                           <td>
@@ -67,19 +66,18 @@
               </div>
             </div>   
 
-            <div class="container mt-5">
+            <div class="container mt-5" id="categorias-pagination-wrap">
               <nav aria-label="Page navigation example">
                 <ul class="pagination justify-content-center">
                   {% if page_obj.has_previous %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Anterior</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
                       <span class="page-link">Anterior</span>
                     </li>
                   {% endif %}
-
                   {% for num in page_obj.paginator.page_range %}
                     {% if page_obj.number == num %}
                       <li class="page-item active">
@@ -87,14 +85,13 @@
                       </li>
                     {% else %}
                       <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">{{ num }}</a>
                       </li>
                     {% endif %}
                   {% endfor %}
-
                   {% if page_obj.has_next %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Siguiente</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
@@ -206,15 +203,41 @@
                 });
               });
 
-              // Eliminar Categoría
-              $('.btn-eliminar').on('click', function() {
-                var id = $(this).data('id');
-                var nombre = $(this).data('nombre');
-                
+              // Búsqueda por nombre con debounce 300 ms (actualiza solo el listado por AJAX)
+              var searchCategoriaDebounce
+              function loadCategoriasList(page) {
+                page = page || 1
+                var params = { page: page }
+                var search = $('#searchCategoria').val()
+                if (search) params.search = search
+                $.ajax({
+                  url: "{% url 'productos:categoria-list' %}",
+                  data: params,
+                  headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                  success: function(data) {
+                    $('#categorias-tbody').html(data.tbody)
+                    $('#categorias-pagination-wrap').html(data.pagination)
+                  }
+                })
+              }
+              $('#searchCategoria').on('input', function() {
+                clearTimeout(searchCategoriaDebounce)
+                searchCategoriaDebounce = setTimeout(function() { loadCategoriasList(1) }, 300)
+              })
+              $(document).on('click', '#categorias-pagination-wrap .page-link-prev, #categorias-pagination-wrap .page-link-num, #categorias-pagination-wrap .page-link-next', function(e) {
+                e.preventDefault()
+                var page = $(this).data('page')
+                if (page) loadCategoriasList(page)
+              })
+
+              // Eliminar Categoría (delegado para filas cargadas por AJAX)
+              $(document).on('click', '.btn-eliminar', function() {
+                var id = $(this).data('id')
+                var nombre = $(this).data('nombre')
                 if (confirm('¿Está seguro de que desea eliminar la categoría "' + nombre + '"?')) {
-                  window.location.href = '/productos/categorias/delete/' + id + '/';
+                  window.location.href = '/productos/categorias/delete/' + id + '/'
                 }
-              });
+              })
             })
 
             </script>

@@ -1,0 +1,29 @@
+{% for pl in productolugares %}
+<tr class="product-row">
+  <td title="{{ pl.producto.codigo|default:'' }}">{{ pl.producto.codigo|default:"—" }}</td>
+  <td class="td-ellipsis" title="{{ pl.producto.nombre|default:'' }}">{{ pl.producto.nombre|default:"—" }}</td>
+  <td>{{ pl.producto.precio|floatformat:2 }}</td>
+  <td>{{ pl.producto.minimo|default:"—" }} - {{ pl.producto.maximo|default:"—" }}</td>
+  <td class="td-ellipsis" title="{{ pl.producto.proveedor.nombre|default:'' }}">{{ pl.producto.proveedor.nombre|default:"—" }}</td>
+  <td>{% if pl.producto.habilitado %}<i class="mdi mdi-check"></i>{% else %}<i class="mdi mdi-close"></i>{% endif %}</td>
+  <td class="text-nowrap">
+    <button type="button" class="btn btn-info btn-sm btn-editar" data-toggle="modal" data-target="#crearProductoModal" data-id="2" data-url="{% url 'productos:producto-detail' pl.producto.id %}" data-urlupdate="{% url 'productos:producto-update' pl.producto.id %}"><i class="ti-pencil"></i></button>
+    <button type="button" class="btn btn-danger btn-sm btn-eliminar" data-id="{{ pl.producto.id }}" data-nombre="{{ pl.producto.nombre }}"><i class="ti-trash"></i></button>
+    <button type="button" class="btn btn-success btn-sm btn-ver-lotes" data-toggle="modal" data-target="#verLotesModal" data-producto-id="{{ pl.producto.id }}" data-producto-nombre="{{ pl.producto.nombre }}" data-productolugar-id="{{ pl.id }}">Ver Lotes</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm btn-expand-row" title="Ver más" aria-expanded="false">
+      <span class="chevron-icon">▼</span>
+    </button>
+  </td>
+</tr>
+<tr class="product-details-row">
+  <td colspan="7">
+    <div class="product-details-content" style="display: none;">
+      <div class="product-details-grid">
+        <span class="detail-item"><span class="detail-label">Medida:</span>{{ pl.producto.medida.medida|default:"—" }}</span>
+        <span class="detail-item"><span class="detail-label">Categoría:</span>{{ pl.producto.categoria.categoria|default:"—" }}</span>
+        <span class="detail-item"><span class="detail-label">Lugar:</span>{% if pl.lugar %}{{ pl.lugar.nombre }}{% else %}—{% endif %}</span>
+      </div>
+    </div>
+  </td>
+</tr>
+{% endfor %}
