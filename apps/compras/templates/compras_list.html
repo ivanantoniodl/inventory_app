@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-12 grid-margin stretch-card">
+      <div class="card">
+        <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <h4 class="card-title mb-1 mr-3">Listado de compras</h4>
+            <div>
+              <button type="button" class="btn btn-primary btn-sm">Nueva Compra</button>
+            </div>
+          </div>
+
+          <form method="get" class="mb-3">
+            <div class="form-row">
+              <div class="form-group col-md-2">
+                <label for="fecha_desde">Fecha desde</label>
+                <input type="date" id="fecha_desde" name="fecha_desde" class="form-control form-control-sm" value="{{ filtro_fecha_desde }}">
+              </div>
+              <div class="form-group col-md-2">
+                <label for="fecha_hasta">Fecha hasta</label>
+                <input type="date" id="fecha_hasta" name="fecha_hasta" class="form-control form-control-sm" value="{{ filtro_fecha_hasta }}">
+              </div>
+              <div class="form-group col-md-2">
+                <label for="anulada">Anulada</label>
+                <select id="anulada" name="anulada" class="form-control form-control-sm">
+                  <option value="">Todas</option>
+                  <option value="0" {% if filtro_anulada == '0' %}selected{% endif %}>No</option>
+                  <option value="1" {% if filtro_anulada == '1' %}selected{% endif %}>Sí</option>
+                </select>
+              </div>
+              <div class="form-group col-md-2">
+                <label for="credito">Crédito</label>
+                <select id="credito" name="credito" class="form-control form-control-sm">
+                  <option value="">Todas</option>
+                  <option value="0" {% if filtro_credito == '0' %}selected{% endif %}>No</option>
+                  <option value="1" {% if filtro_credito == '1' %}selected{% endif %}>Sí</option>
+                </select>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="proveedor">Proveedor</label>
+                <select id="proveedor" name="proveedor" class="form-control form-control-sm">
+                  <option value="">Todos</option>
+                  {% for proveedor in proveedores %}
+                    <option value="{{ proveedor.id }}" {% if filtro_proveedor == proveedor.id|stringformat:"s" %}selected{% endif %}>{{ proveedor.nombre }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-secondary btn-sm w-100">Filtrar</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Fecha</th>
+                  <th>Factura</th>
+                  <th>Proveedor</th>
+                  <th>Total</th>
+                  <th>Saldo</th>
+                  <th>Anulada</th>
+                  <th>Crédito</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for compra in compras %}
+                <tr>
+                  <td>{{ compra.id }}</td>
+                  <td>{{ compra.fechahora|date:"Y-m-d H:i" }}</td>
+                  <td>{{ compra.factura }}</td>
+                  <td>{{ compra.proveedor.nombre|default:"—" }}</td>
+                  <td>{{ compra.total|floatformat:2 }}</td>
+                  <td>{{ compra.saldo|default:0|floatformat:2 }}</td>
+                  <td>{% if compra.anulada %}<i class="mdi mdi-check"></i>{% else %}<i class="mdi mdi-close"></i>{% endif %}</td>
+                  <td>{% if compra.credito %}<i class="mdi mdi-check"></i>{% else %}<i class="mdi mdi-close"></i>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center">No hay compras registradas con los filtros seleccionados.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container mt-5">
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&fecha_desde={{ filtro_fecha_desde }}&fecha_hasta={{ filtro_fecha_hasta }}&anulada={{ filtro_anulada }}&credito={{ filtro_credito }}&proveedor={{ filtro_proveedor }}">Anterior</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="?page={{ num }}&fecha_desde={{ filtro_fecha_desde }}&fecha_hasta={{ filtro_fecha_hasta }}&anulada={{ filtro_anulada }}&credito={{ filtro_credito }}&proveedor={{ filtro_proveedor }}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&fecha_desde={{ filtro_fecha_desde }}&fecha_hasta={{ filtro_fecha_hasta }}&anulada={{ filtro_anulada }}&credito={{ filtro_credito }}&proveedor={{ filtro_proveedor }}">Siguiente</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Siguiente</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}

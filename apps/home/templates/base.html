@@ -336,6 +336,19 @@
               </ul>
             </div>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="collapse" href="#compras" aria-expanded="{% if app_name == 'compras' %}true{% else %}false{% endif %}" aria-controls="compras" id="compras-toggle">
+              <i class="icon-briefcase menu-icon"></i>
+              <span class="menu-title">Compras</span>
+              <i class="menu-arrow"></i>
+            </a>
+            <div class="collapse{% if app_name == 'compras' %} show{% endif %}" id="compras">
+              <ul class="nav flex-column sub-menu">
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'proveedor-list' %} active{% endif %}" href="{% url 'compras:proveedor-list' %}">Proveedores</a></li>
+                <li class="nav-item"> <a class="nav-link{% if url_name == 'compra-list' %} active{% endif %}" href="{% url 'compras:compra-list' %}">Compras</a></li>
+              </ul>
+            </div>
+          </li>
           {% endwith %}
           {% endwith %}        
         </ul>
