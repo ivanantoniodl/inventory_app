@@ -80,7 +80,7 @@ class DetalleCompra(models.Model):
     productolugar = models.ForeignKey(
         "productos.ProductoLugar",
         on_delete=models.PROTECT,
-        db_column="MedicamentoLugar_id",
+        db_column="ProductoLugar_id",
     )
 
     def __str__(self):

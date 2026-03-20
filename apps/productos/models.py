@@ -90,12 +90,18 @@ class Lote(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        skip_mov = getattr(self, "_skip_movimiento_primer_ingreso", False)
         super().save(*args, **kwargs)
-        if is_new:
+        if is_new and not skip_mov:
             self._crear_movimientos_primer_ingreso()
 
     def _crear_movimientos_primer_ingreso(self):
-        """Crea MovimientoProducto y MovimientoLote para el primer ingreso del lote."""
+        """
+        Crea MovimientoProducto y MovimientoLote para ingreso manual del lote (sin compra).
+
+        No asumir existencia 0 en ProductoLugar: puede haber stock previo de otros lotes
+        o de ingresos anteriores. ultima_existencia = stock del lugar *antes* de este ingreso.
+        """
         cantidad = (self.lotetotal is not None and self.lotetotal) or (self.existencia is not None and self.existencia) or 0
         costo = (self.costo is not None and self.costo) or 0
         try:
@@ -103,15 +109,19 @@ class Lote(models.Model):
         except Exception:
             host = None
 
+        # Valor real en BD (p. ej. ya hubo otro lote o movimiento antes de la primera compra)
+        self.productolugar.refresh_from_db()
+        ultima_pl_antes = float(self.productolugar.existencia or 0)
+
         mov = MovimientoProducto.objects.create(
             cant_entrada=cantidad,
             cant_salida=0,
-            ultima_existencia=0,
+            ultima_existencia=ultima_pl_antes,
             fechahora=timezone.now(),
             host=host,
             motivo='Primer_Ingreso',
             costo=costo,
-            detalle_compra_id=None,
+            detalle_compra=None,
             productolugar=self.productolugar,
             detalle_factura_id=None,
             detalle_salida_id=None,
@@ -123,8 +133,7 @@ class Lote(models.Model):
             lote=self,
             movimiento_producto=mov,
         )
-        # Actualizar existencia del ProductoLugar
-        self.productolugar.existencia = (self.productolugar.existencia or 0) + cantidad
+        self.productolugar.existencia = ultima_pl_antes + float(cantidad)
         self.productolugar.save(update_fields=['existencia'])
 
 
@@ -136,7 +145,14 @@ class MovimientoProducto(models.Model):
     host = models.CharField(max_length=45, null=True, blank=True)
     motivo = models.CharField(max_length=255, null=True, blank=True)
     costo = models.FloatField(null=True, blank=True, default=0)
-    detalle_compra_id = models.BigIntegerField(null=True, blank=True)  # FK cuando exista DetalleCompra
+    detalle_compra = models.ForeignKey(
+        "compras.DetalleCompra",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="movimientos_producto",
+        db_column="DetalleCompra_id",
+    )
     productolugar = models.ForeignKey(
         ProductoLugar,
         on_delete=models.PROTECT,

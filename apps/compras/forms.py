@@ -1,4 +1,7 @@
 from django import forms
+from django.db.models import Q
+
+from apps.lugares.models import Lugar
 
 from .models import Proveedor
 
@@ -41,3 +44,31 @@ class ProveedorForm(forms.ModelForm):
             ),
             "habilitado": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+
+class CompraCreateForm(forms.Form):
+    proveedor = forms.ModelChoiceField(
+        queryset=Proveedor.objects.none(),
+        label="Proveedor",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    fecha = forms.DateField(
+        label="Fecha",
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+    lugar = forms.ModelChoiceField(
+        queryset=Lugar.objects.none(),
+        required=False,
+        label="Lugar (opcional)",
+        empty_label="Seleccionar automáticamente",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["proveedor"].queryset = Proveedor.objects.filter(
+            Q(eliminado=False) | Q(eliminado__isnull=True)
+        ).order_by("nombre")
+        self.fields["lugar"].queryset = Lugar.objects.filter(
+            Q(eliminado=False) | Q(eliminado__isnull=True)
+        ).order_by("nombre")

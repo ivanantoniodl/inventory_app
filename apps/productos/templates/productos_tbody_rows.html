@@ -3,7 +3,7 @@
   <td title="{{ pl.producto.codigo|default:'' }}">{{ pl.producto.codigo|default:"—" }}</td>
   <td class="td-ellipsis" title="{{ pl.producto.nombre|default:'' }}">{{ pl.producto.nombre|default:"—" }}</td>
   <td>{{ pl.producto.precio|floatformat:2 }}</td>
-  <td>{{ pl.producto.minimo|default:"—" }} - {{ pl.producto.maximo|default:"—" }}</td>
+  <td>{% if pl.existencia is not None %}{{ pl.existencia|floatformat:2 }}{% else %}—{% endif %}</td>
   <td class="td-ellipsis" title="{{ pl.producto.proveedor.nombre|default:'' }}">{{ pl.producto.proveedor.nombre|default:"—" }}</td>
   <td>{% if pl.producto.habilitado %}<i class="mdi mdi-check"></i>{% else %}<i class="mdi mdi-close"></i>{% endif %}</td>
   <td class="text-nowrap">
@@ -22,6 +22,8 @@
         <span class="detail-item"><span class="detail-label">Medida:</span>{{ pl.producto.medida.medida|default:"—" }}</span>
         <span class="detail-item"><span class="detail-label">Categoría:</span>{{ pl.producto.categoria.categoria|default:"—" }}</span>
         <span class="detail-item"><span class="detail-label">Lugar:</span>{% if pl.lugar %}{{ pl.lugar.nombre }}{% else %}—{% endif %}</span>
+        <span class="detail-item"><span class="detail-label">Existencia (lugar):</span>{% if pl.existencia is not None %}{{ pl.existencia|floatformat:2 }}{% else %}—{% endif %}</span>
+        <span class="detail-item"><span class="detail-label">Mín / Máx:</span>{{ pl.producto.minimo|default:"—" }} / {{ pl.producto.maximo|default:"—" }}</span>
       </div>
     </div>
   </td>

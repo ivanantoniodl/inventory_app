@@ -1,5 +1,7 @@
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
@@ -350,31 +352,48 @@ class ProductoListView(ListView):
     context_object_name = 'productolugares'
     paginate_by = 10  # Número de filas por página
 
+    def _lugares_filtro_qs(self):
+        return Lugar.objects.filter(
+            Q(eliminado=False) | Q(eliminado__isnull=True)
+        ).order_by("nombre")
+
+    def dispatch(self, request, *args, **kwargs):
+        """Siempre exige un lugar válido: si falta o es inválido, redirige al primero (por nombre)."""
+        lugares_qs = self._lugares_filtro_qs()
+        first_lugar = lugares_qs.first()
+        if first_lugar is None:
+            return super().dispatch(request, *args, **kwargs)
+        valid = {str(pk) for pk in lugares_qs.values_list("idLugar", flat=True)}
+        lugar_param = (request.GET.get("lugar") or "").strip()
+        if lugar_param not in valid:
+            q = request.GET.copy()
+            q["lugar"] = str(first_lugar.idLugar)
+            q["page"] = "1"
+            return HttpResponseRedirect(f"{reverse('productos:producto-list')}?{q.urlencode()}")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = ProductoForm()  # Añade el formulario al contexto
         # Lugares activos para el filtro
-        context['lugares_filtro'] = Lugar.objects.filter(
-            Q(eliminado=False) | Q(eliminado__isnull=True)
-        ).order_by('nombre')
-        context['filtro_lugar_id'] = self.request.GET.get('lugar', '')
-        context['filtro_search'] = self.request.GET.get('search', '')
+        context['lugares_filtro'] = self._lugares_filtro_qs()
+        context['filtro_lugar_id'] = self.request.GET.get("lugar", "")
+        context['filtro_search'] = self.request.GET.get("search", "")
         return context
 
     def get_queryset(self):
-        # Inner join: Producto + ProductoLugar (una fila por cada par producto-lugar)
+        # Una fila por producto en el lugar seleccionado (nunca mezclar todos los lugares)
         qs = (
             ProductoLugar.objects
             .filter(Q(producto__eliminado=False) | Q(producto__eliminado__isnull=True))
             .select_related('producto', 'producto__proveedor', 'producto__medida', 'producto__categoria', 'lugar')
-            .order_by('producto__id', 'lugar_id')
+            .order_by('producto__nombre', 'producto__id')
         )
-        # Filtro por lugar
-        lugar_id = self.request.GET.get('lugar')
-        if lugar_id:
-            qs = qs.filter(lugar_id=lugar_id)
-        # Filtro por nombre de producto
-        search = self.request.GET.get('search', '').strip()
+        lugar_id = self.request.GET.get("lugar")
+        if not lugar_id:
+            return ProductoLugar.objects.none()
+        qs = qs.filter(lugar_id=lugar_id)
+        search = self.request.GET.get("search", "").strip()
         if search:
             qs = qs.filter(producto__nombre__icontains=search)
         return qs
