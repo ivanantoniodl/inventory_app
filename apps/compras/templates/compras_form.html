@@ -44,12 +44,14 @@
                 {% endif %}
               </div>
               <div class="form-group col-md-4">
-                {{ form.lugar.label_tag }}
-                {{ form.lugar }}
-                {% if form.lugar.errors %}
-                  <div class="text-danger small">{{ form.lugar.errors }}</div>
-                {% endif %}
-                <small class="form-text text-muted">Si no selecciona, se usa el primer lugar disponible.</small>
+                <label for="id_lugar_display">Lugar</label>
+                <input type="hidden" name="lugar" value="{% if current_lugar %}{{ current_lugar.idLugar }}{% endif %}">
+                <select id="id_lugar_display" class="form-control" disabled>
+                  {% for lugar in lugares_filtro %}
+                    <option value="{{ lugar.idLugar }}" {% if current_lugar and current_lugar.idLugar == lugar.idLugar %}selected{% endif %}>{{ lugar.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <small class="form-text text-muted">El lugar queda fijo al primero de la lista.</small>
               </div>
             </div>
 
@@ -138,6 +140,7 @@
     var items = [];
     var currentOptionsMap = {};
     var selectedProduct = null;
+    var highlightedSuggestionIndex = -1;
     var searchDebounce = null;
     var previousLugarValue = lugarSelect ? lugarSelect.value : '';
 
@@ -180,6 +183,7 @@
 
     function renderSuggestions(products) {
       productoSuggestions.innerHTML = '';
+      highlightedSuggestionIndex = -1;
       if (!products.length) {
         productoSuggestions.style.display = 'none';
         return;
@@ -193,6 +197,44 @@
         productoSuggestions.appendChild(btn);
       });
       productoSuggestions.style.display = 'block';
+    }
+
+    function suggestionButtons() {
+      return Array.prototype.slice.call(
+        productoSuggestions.querySelectorAll('button[data-producto-id]')
+      );
+    }
+
+    function setHighlightedSuggestion(index) {
+      var buttons = suggestionButtons();
+      if (!buttons.length) {
+        highlightedSuggestionIndex = -1;
+        return;
+      }
+      if (index < 0) index = buttons.length - 1;
+      if (index >= buttons.length) index = 0;
+      highlightedSuggestionIndex = index;
+      buttons.forEach(function(btn, i) {
+        if (i === index) {
+          btn.classList.add('active');
+          btn.scrollIntoView({ block: 'nearest' });
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    function selectSuggestionButton(btn) {
+      if (!btn) return false;
+      var pid = btn.getAttribute('data-producto-id');
+      var product = currentOptionsMap[pid];
+      if (!product) return false;
+      selectedProduct = product;
+      productoSearch.value = product.nombre;
+      refreshSelectedProductUI();
+      productoSuggestions.style.display = 'none';
+      highlightedSuggestionIndex = -1;
+      return true;
     }
 
     function refreshSelectedProductUI() {
@@ -257,10 +299,12 @@
       var cantidad = toNumber(cantidadInput.value);
       if (!selectedProduct || !selectedProduct.producto_id) {
         alert('Debe seleccionar un producto.');
+        productoSearch.focus();
         return;
       }
       if (cantidad <= 0) {
         alert('La cantidad debe ser mayor a 0.');
+        cantidadInput.focus();
         return;
       }
 
@@ -286,6 +330,7 @@
       refreshSelectedProductUI();
       productoSuggestions.style.display = 'none';
       renderItems();
+      productoSearch.focus();
     }
 
     productoSearch.addEventListener('input', function() {
@@ -302,16 +347,28 @@
       }, 250);
     });
 
+    productoSearch.addEventListener('keydown', function(e) {
+      var isOpen = productoSuggestions.style.display === 'block';
+      if (!isOpen) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedSuggestion(highlightedSuggestionIndex + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedSuggestion(highlightedSuggestionIndex - 1);
+      } else if (e.key === 'Enter') {
+        var buttons = suggestionButtons();
+        if (!buttons.length) return;
+        e.preventDefault();
+        var index = highlightedSuggestionIndex >= 0 ? highlightedSuggestionIndex : 0;
+        selectSuggestionButton(buttons[index]);
+      }
+    });
+
     productoSuggestions.addEventListener('click', function(e) {
       var btn = e.target.closest('button[data-producto-id]');
       if (!btn) return;
-      var pid = btn.getAttribute('data-producto-id');
-      var product = currentOptionsMap[pid];
-      if (!product) return;
-      selectedProduct = product;
-      productoSearch.value = product.nombre;
-      refreshSelectedProductUI();
-      productoSuggestions.style.display = 'none';
+      selectSuggestionButton(btn);
     });
 
     if (clearProductoSeleccionado) {
@@ -326,6 +383,7 @@
     document.addEventListener('click', function(e) {
       if (!productoSuggestions.contains(e.target) && e.target !== productoSearch) {
         productoSuggestions.style.display = 'none';
+        highlightedSuggestionIndex = -1;
       }
     });
 

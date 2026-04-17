@@ -113,8 +113,8 @@
                         {% endif %}
                         <input type="text" name="search" id="searchProducto" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ filtro_search }}" style="max-width: 220px;">
                       </form>
-                      <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFiltros" aria-label="Filtros">
-                        Filtros
+                      <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFiltros" aria-label="Lugar">
+                        Lugar
                       </button>
                     </div>
                     <div>
@@ -193,28 +193,24 @@
                   </button>
                 </div>
                 <div class="panel-filtros-body">
-                  <form method="get" action="{% url 'productos:producto-list' %}" id="formFiltros">
-                    <input type="hidden" name="page" value="1">
-                    <div class="form-group">
+                  <div class="form-group">
                       {% if lugares_filtro %}
                       <label for="filtroLugar">Lugar</label>
-                      <select name="lugar" id="filtroLugar" class="form-control" required>
+                      <select name="lugar" id="filtroLugar" class="form-control" disabled>
                         {% for lugar in lugares_filtro %}
                           <option value="{{ lugar.idLugar }}" {% if filtro_lugar_id == lugar.idLugar|stringformat:"d" %}selected{% endif %}>{{ lugar.nombre }}</option>
                         {% endfor %}
                       </select>
-                      <small class="form-text text-muted">Debe elegir un lugar; no se listan productos de todos los lugares a la vez.</small>
+                      <small class="form-text text-muted">El listado usa siempre el primer lugar disponible.</small>
                       {% else %}
                       <p class="text-warning mb-0">No hay lugares activos configurados.</p>
                       {% endif %}
-                    </div>
-                    <div class="mt-4">
-                      <button type="submit" class="btn btn-primary mr-2" {% if not lugares_filtro %}disabled{% endif %}>Aplicar filtro</button>
+                  </div>
+                  <div class="mt-4">
                       {% if filtro_search and filtro_lugar_id %}
                       <a href="{% url 'productos:producto-list' %}?lugar={{ filtro_lugar_id }}&amp;page=1" class="btn btn-secondary">Quitar búsqueda</a>
                       {% endif %}
-                    </div>
-                  </form>
+                  </div>
                 </div>
               </div>
             </div>

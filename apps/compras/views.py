@@ -4,11 +4,14 @@ from datetime import datetime
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q
+from django.http import HttpResponseBadRequest
+from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView
@@ -25,6 +28,7 @@ from .models import Compra
 from .models import DetalleCompra
 from .models import Proveedor
 from .services import aplicar_detalle_compra_a_stock
+from .services import anular_compra_y_revertir_stock
 
 
 class ProveedorListView(ListView):
@@ -122,11 +126,32 @@ class CompraListView(ListView):
     context_object_name = "compras"
     paginate_by = 10
 
+    def _lugares_filtro_qs(self):
+        return Lugar.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True)).order_by(
+            "nombre"
+        )
+
+    def dispatch(self, request, *args, **kwargs):
+        lugares_qs = self._lugares_filtro_qs()
+        first_lugar = lugares_qs.first()
+        if first_lugar is None:
+            return super().dispatch(request, *args, **kwargs)
+        lugar_param = (request.GET.get("lugar") or "").strip()
+        if lugar_param != str(first_lugar.idLugar):
+            q = request.GET.copy()
+            q["lugar"] = str(first_lugar.idLugar)
+            q["page"] = "1"
+            return HttpResponseRedirect(f"{reverse('compras:compra-list')}?{q.urlencode()}")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["proveedores"] = Proveedor.objects.filter(
             Q(eliminado=False) | Q(eliminado__isnull=True)
         ).order_by("nombre")
+        context["lugares_filtro"] = self._lugares_filtro_qs()
+        first_lugar = context["lugares_filtro"].first()
+        context["filtro_lugar_id"] = str(first_lugar.idLugar) if first_lugar else ""
         context["filtro_fecha_desde"] = self.request.GET.get("fecha_desde", "")
         context["filtro_fecha_hasta"] = self.request.GET.get("fecha_hasta", "")
         context["filtro_anulada"] = self.request.GET.get("anulada", "")
@@ -142,6 +167,11 @@ class CompraListView(ListView):
             )
             .order_by("-fechahora")
         )
+
+        lugar = self._lugares_filtro_qs().first()
+        if lugar is None:
+            return Compra.objects.none()
+        qs = qs.filter(lugar=lugar)
 
         fecha_desde = self.request.GET.get("fecha_desde", "").strip()
         if fecha_desde:
@@ -167,7 +197,9 @@ class CompraListView(ListView):
 
 
 def _get_default_lugar():
-    return Lugar.objects.order_by("idLugar").first()
+    return Lugar.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True)).order_by(
+        "nombre"
+    ).first()
 
 
 def _resolve_lugar(selected_lugar):
@@ -177,10 +209,11 @@ def _resolve_lugar(selected_lugar):
 
 
 def _build_catalog_product_options(limit=400):
-    """Lista de productos activos para el JSON inicial del formulario (autocomplete también usa catálogo)."""
+    """Lista de productos activos y habilitados para el JSON inicial del formulario."""
     options = []
     qs = (
         Producto.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+        .filter(habilitado=True)
         .order_by("nombre")[:limit]
     )
     for p in qs:
@@ -203,7 +236,9 @@ def _next_factura():
 
 def productos_autocomplete(request):
     query = request.GET.get("q", "").strip()
-    qs = Producto.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True))
+    qs = Producto.objects.filter(Q(eliminado=False) | Q(eliminado__isnull=True)).filter(
+        habilitado=True
+    )
     if query:
         qs = qs.filter(Q(nombre__icontains=query) | Q(codigo__icontains=query))
     qs = qs.order_by("nombre")[:40]
@@ -222,8 +257,10 @@ def productos_autocomplete(request):
 
 
 def compra_create(request):
+    lugares_filtro = Lugar.objects.filter(
+        Q(eliminado=False) | Q(eliminado__isnull=True)
+    ).order_by("nombre")
     default_lugar = _get_default_lugar()
-    selected_lugar = None
     current_lugar = default_lugar
     product_options = _build_catalog_product_options()
     initial_items_json = "[]"
@@ -232,15 +269,7 @@ def compra_create(request):
         form = CompraCreateForm(request.POST)
         raw_items = request.POST.get("items_json", "[]")
         initial_items_json = raw_items
-        selected_lugar = form.data.get("lugar")
-        if selected_lugar:
-            try:
-                selected_lugar = Lugar.objects.get(pk=int(selected_lugar))
-            except (ValueError, Lugar.DoesNotExist):
-                selected_lugar = None
-        else:
-            selected_lugar = None
-        current_lugar = _resolve_lugar(selected_lugar)
+        current_lugar = default_lugar
 
         if current_lugar is None:
             messages.error(
@@ -255,6 +284,7 @@ def compra_create(request):
                     "product_options": product_options,
                     "initial_items_json": initial_items_json,
                     "default_lugar": default_lugar,
+                    "lugares_filtro": lugares_filtro,
                     "current_lugar": current_lugar,
                 },
             )
@@ -275,6 +305,7 @@ def compra_create(request):
                         "product_options": product_options,
                         "initial_items_json": initial_items_json,
                         "default_lugar": default_lugar,
+                        "lugares_filtro": lugares_filtro,
                         "current_lugar": current_lugar,
                     },
                 )
@@ -291,6 +322,7 @@ def compra_create(request):
                             "product_options": product_options,
                             "initial_items_json": initial_items_json,
                             "default_lugar": default_lugar,
+                            "lugares_filtro": lugares_filtro,
                             "current_lugar": current_lugar,
                         },
                     )
@@ -309,6 +341,7 @@ def compra_create(request):
                             "product_options": product_options,
                             "initial_items_json": initial_items_json,
                             "default_lugar": default_lugar,
+                            "lugares_filtro": lugares_filtro,
                             "current_lugar": current_lugar,
                         },
                     )
@@ -322,13 +355,13 @@ def compra_create(request):
                             "product_options": product_options,
                             "initial_items_json": initial_items_json,
                             "default_lugar": default_lugar,
+                            "lugares_filtro": lugares_filtro,
                             "current_lugar": current_lugar,
                         },
                     )
                 normalized.append({"producto_id": producto_id, "cantidad": cantidad})
 
-            selected_lugar = form.cleaned_data.get("lugar")
-            current_lugar = _resolve_lugar(selected_lugar)
+            current_lugar = default_lugar
             for item in normalized:
                 pid = item["producto_id"]
                 if not Producto.objects.filter(
@@ -346,6 +379,7 @@ def compra_create(request):
                             "product_options": product_options,
                             "initial_items_json": initial_items_json,
                             "default_lugar": default_lugar,
+                            "lugares_filtro": lugares_filtro,
                             "current_lugar": current_lugar,
                         },
                     )
@@ -404,7 +438,12 @@ def compra_create(request):
             messages.success(request, "Compra creada exitosamente.")
             return redirect("compras:compra-list")
     else:
-        form = CompraCreateForm(initial={"fecha": timezone.localdate()})
+        form = CompraCreateForm(
+            initial={
+                "fecha": timezone.localdate(),
+                "lugar": default_lugar.pk if default_lugar else None,
+            }
+        )
         current_lugar = _resolve_lugar(form.initial.get("lugar"))
         product_options = _build_catalog_product_options()
 
@@ -416,6 +455,61 @@ def compra_create(request):
             "product_options": product_options,
             "initial_items_json": initial_items_json,
             "default_lugar": default_lugar,
+            "lugares_filtro": lugares_filtro,
             "current_lugar": current_lugar,
         },
     )
+
+
+def compra_detail(request, pk):
+    compra = get_object_or_404(
+        Compra.objects.select_related("proveedor", "lugar"),
+        pk=pk,
+    )
+    detalles = (
+        compra.detallecompra_set.select_related("productolugar__producto", "productolugar__lugar")
+        .all()
+        .order_by("id")
+    )
+    return JsonResponse(
+        {
+            "id": compra.id,
+            "factura": compra.factura,
+            "fecha": timezone.localtime(compra.fechahora).strftime("%Y-%m-%d %H:%M")
+            if compra.fechahora
+            else "",
+            "proveedor": compra.proveedor.nombre if compra.proveedor else "—",
+            "lugar": compra.lugar.nombre if compra.lugar else "—",
+            "anulada": bool(compra.anulada),
+            "total": float(compra.total or 0),
+            "detalles": [
+                {
+                    "id": detalle.id,
+                    "producto": (
+                        detalle.productolugar.producto.nombre
+                        if detalle.productolugar and detalle.productolugar.producto
+                        else f"ProductoLugar {detalle.productolugar_id}"
+                    ),
+                    "cantidad": float(detalle.cantidad or 0),
+                    "costo": float(detalle.costo or 0),
+                    "subtotal": float(detalle.subtotal or 0),
+                    "anulada": bool(detalle.anulada),
+                }
+                for detalle in detalles
+            ],
+        }
+    )
+
+
+def compra_anular(request, pk):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método no permitido.")
+
+    compra = get_object_or_404(Compra.objects.select_related("lugar"), pk=pk)
+    try:
+        anular_compra_y_revertir_stock(compra, request=request)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"Compra {compra.factura} anulada correctamente.")
+    return redirect("compras:compra-list")

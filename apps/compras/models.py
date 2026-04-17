@@ -34,7 +34,13 @@ class Telefono(models.Model):
         blank=True,
         db_column="Proveedor_id",
     )
-    cliente_id = models.BigIntegerField(null=True, blank=True)
+    cliente = models.ForeignKey(
+        "ventas.Cliente",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        db_column="Cliente_id",
+    )
 
     def __str__(self):
         return self.numero

@@ -1,5 +1,7 @@
 from django.urls import path
 
+from .views import compra_anular
+from .views import compra_detail
 from .views import compra_create
 from .views import CompraListView
 from .views import productos_autocomplete
@@ -19,5 +21,7 @@ urlpatterns = [
     path("proveedores/delete/<int:pk>/", proveedor_delete, name="proveedor-delete"),
     path("compras/", CompraListView.as_view(), name="compra-list"),
     path("compras/nueva/", compra_create, name="compra-create"),
+    path("compras/<int:pk>/detalle/", compra_detail, name="compra-detail"),
+    path("compras/<int:pk>/anular/", compra_anular, name="compra-anular"),
     path("productos/autocomplete/", productos_autocomplete, name="productos-autocomplete"),
 ]
