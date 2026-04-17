@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-12 grid-margin stretch-card">
+      <div class="card">
+        <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <div class="d-flex align-items-center flex-wrap">
+              <h4 class="card-title mb-1 mr-3">Listado de proveedores</h4>
+              <form method="get" action="{% url 'compras:proveedor-list' %}" id="formSearchProveedorCompra" class="d-inline-flex align-items-center mr-2">
+                <input type="text" name="search" id="searchProveedorCompra" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ filtro_search }}" style="max-width: 220px;">
+              </form>
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearProveedorModal" data-id="1">
+                Crear proveedor
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Dirección</th>
+                  <th>Nit</th>
+                  <th>Status</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="proveedores-compra-tbody">
+                {% include "compras_proveedores_tbody_rows.html" %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container mt-5" id="proveedores-compra-pagination-wrap">
+      {% include "compras_proveedores_pagination.html" %}
+    </div>
+
+    <div class="modal fade" id="crearProveedorModal" tabindex="-1" role="dialog" aria-labelledby="crearProveedorLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <form id="proveedorCompraForm" method="post" action="">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title" id="crearProveedorLabel">Crear proveedor</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">{{ form.nombre.label_tag }}{{ form.nombre }}</div>
+              <div class="form-group">{{ form.contacto.label_tag }}{{ form.contacto }}</div>
+              <div class="form-group">{{ form.direccion.label_tag }}{{ form.direccion }}</div>
+              <div class="form-group">{{ form.nit.label_tag }}{{ form.nit }}</div>
+              <div class="form-group">{{ form.observaciones.label_tag }}{{ form.observaciones }}</div>
+              <div class="form-check" id="status">{{ form.habilitado }} {{ form.habilitado.label_tag }}</div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  $(document).ready(function() {
+    $('#crearProveedorModal').on('show.bs.modal', function(event) {
+      var button = $(event.relatedTarget)
+      var recipient = button.data('id')
+      var url = button.data('url')
+      var urlUpdate = button.data('urlupdate')
+      var modal = $(this)
+      if (recipient == 1) {
+        modal.find('.modal-title').text('Crear Proveedor')
+        modal.find('form').attr('action', "{% url 'compras:proveedor-create' %}")
+        modal.find('#id_nombre').val('')
+        modal.find('#id_contacto').val('')
+        modal.find('#id_direccion').val('')
+        modal.find('#id_nit').val('')
+        modal.find('#id_observaciones').val('')
+        modal.find('#id_habilitado').prop('checked', true)
+      } else if (recipient == 2) {
+        modal.find('.modal-title').text('Editar Proveedor')
+        modal.find('form').attr('action', urlUpdate)
+        $.ajax({
+          url: url,
+          method: 'GET',
+          success: function(data) {
+            modal.find('#id_nombre').val(data.nombre)
+            modal.find('#id_contacto').val(data.contacto)
+            modal.find('#id_direccion').val(data.direccion)
+            modal.find('#id_nit').val(data.nit)
+            modal.find('#id_observaciones').val(data.observaciones)
+            modal.find('#id_habilitado').prop('checked', data.habilitado)
+          }
+        })
+      }
+    })
+
+    $('#proveedorCompraForm').on('submit', function(e) {
+      e.preventDefault()
+      var form = $(this)
+      var url = form.attr('action')
+      var formData = form.serialize()
+      $.ajax({
+        url: url,
+        type: 'POST',
+        data: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        success: function(response) {
+          if (response.success) {
+            $('#crearProveedorModal').modal('hide')
+            setTimeout(function() { location.reload() }, 50)
+          } else {
+            alert('Error al guardar el proveedor: ' + JSON.stringify(response.errors))
+          }
+        },
+        error: function(xhr) {
+          var msg = 'Error al guardar el proveedor.'
+          if (xhr.responseJSON && xhr.responseJSON.errors) msg = JSON.stringify(xhr.responseJSON.errors)
+          alert(msg)
+        }
+      })
+    })
+
+    var searchProveedorDebounce
+    function loadProveedoresList(page) {
+      page = page || 1
+      var params = { page: page }
+      var search = $('#searchProveedorCompra').val()
+      if (search) params.search = search
+      $.ajax({
+        url: "{% url 'compras:proveedor-list' %}",
+        data: params,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        success: function(data) {
+          $('#proveedores-compra-tbody').html(data.tbody)
+          $('#proveedores-compra-pagination-wrap').html(data.pagination)
+        }
+      })
+    }
+    $('#searchProveedorCompra').on('input', function() {
+      clearTimeout(searchProveedorDebounce)
+      searchProveedorDebounce = setTimeout(function() { loadProveedoresList(1) }, 300)
+    })
+    $(document).on('click', '#proveedores-compra-pagination-wrap .page-link-prev, #proveedores-compra-pagination-wrap .page-link-num, #proveedores-compra-pagination-wrap .page-link-next', function(e) {
+      e.preventDefault()
+      var page = $(this).data('page')
+      if (page) loadProveedoresList(page)
+    })
+
+    $(document).on('click', '.btn-eliminar', function() {
+      var id = $(this).data('id')
+      var nombre = $(this).data('nombre')
+      if (confirm('¿Está seguro de que desea eliminar el proveedor "' + nombre + '"?')) {
+        window.location.href = '/compras/proveedores/delete/' + id + '/'
+      }
+    })
+  })
+</script>
+{% endblock %}

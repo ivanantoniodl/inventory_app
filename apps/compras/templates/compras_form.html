@@ -1,0 +1,470 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-12 grid-margin stretch-card">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="card-title mb-0">Nueva Compra</h4>
+            <a href="{% url 'compras:compra-list' %}" class="btn btn-secondary btn-sm">Volver al listado</a>
+          </div>
+
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags|default:'info' }} mb-2">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+
+          {% if not default_lugar %}
+            <div class="alert alert-warning">
+              No existe un Lugar configurado. Debe crear al menos un Lugar para registrar compras.
+            </div>
+          {% endif %}
+
+          <form method="post" id="compraForm">
+            {% csrf_token %}
+            <input type="hidden" name="items_json" id="itemsJson" value="{{ initial_items_json|default:'[]'|escape }}">
+            {{ product_options|json_script:"initial-product-options" }}
+
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                {{ form.proveedor.label_tag }}
+                {{ form.proveedor }}
+                {% if form.proveedor.errors %}
+                  <div class="text-danger small">{{ form.proveedor.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="form-group col-md-3">
+                {{ form.fecha.label_tag }}
+                {{ form.fecha }}
+                {% if form.fecha.errors %}
+                  <div class="text-danger small">{{ form.fecha.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="form-group col-md-4">
+                <label for="id_lugar_display">Lugar</label>
+                <input type="hidden" name="lugar" value="{% if current_lugar %}{{ current_lugar.idLugar }}{% endif %}">
+                <select id="id_lugar_display" class="form-control" disabled>
+                  {% for lugar in lugares_filtro %}
+                    <option value="{{ lugar.idLugar }}" {% if current_lugar and current_lugar.idLugar == lugar.idLugar %}selected{% endif %}>{{ lugar.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <small class="form-text text-muted">El lugar queda fijo al primero de la lista.</small>
+              </div>
+            </div>
+
+            <hr>
+            <h5 class="mb-3">Agregar productos</h5>
+
+            <div class="form-row align-items-end">
+              <div class="form-group col-md-5 position-relative">
+                <label for="productoSearch">Buscar producto</label>
+                <input type="text" id="productoSearch" class="form-control form-control-sm" placeholder="Escriba código o nombre...">
+                <div id="productoSuggestions" class="list-group position-absolute w-100" style="z-index: 1000; max-height: 220px; overflow:auto; display:none;"></div>
+              </div>
+              <div class="form-group col-md-2">
+                <label for="cantidadInput">Cantidad</label>
+                <input type="number" id="cantidadInput" class="form-control form-control-sm" min="0.01" step="0.01" value="1">
+              </div>
+              <div class="form-group col-md-2">
+                <button type="button" id="addItemBtn" class="btn btn-primary btn-sm btn-block">Agregar</button>
+              </div>
+            </div>
+
+            <div id="productoSeleccionadoWrap" class="mt-2 mb-1" style="display: none;">
+              <span class="text-muted small">Producto seleccionado:</span>
+              <span id="productoSeleccionadoBadge" class="badge badge-info align-middle ml-1"></span>
+              <span id="productoSeleccionadoPrecio" class="small text-muted ml-2"></span>
+              <button type="button" class="btn btn-link btn-sm p-0 align-baseline ml-2" id="clearProductoSeleccionado" title="Quitar selección">Quitar</button>
+            </div>
+
+            <div class="table-responsive mt-3">
+              <table class="table table-striped" id="itemsTable">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th class="text-right">Cantidad</th>
+                    <th class="text-right">Precio</th>
+                    <th class="text-right">Subtotal</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="itemsTbody">
+                  <tr id="emptyRow">
+                    <td colspan="5" class="text-center text-muted">No hay productos agregados.</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colspan="3" class="text-right">Total:</th>
+                    <th class="text-right" id="totalLabel">0.00</th>
+                    <th></th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div class="mt-3">
+              <button type="submit" class="btn btn-success" {% if not default_lugar %}disabled{% endif %}>Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function() {
+    var productoSearch = document.getElementById('productoSearch');
+    var productoSuggestions = document.getElementById('productoSuggestions');
+    var cantidadInput = document.getElementById('cantidadInput');
+    var addItemBtn = document.getElementById('addItemBtn');
+    var itemsTbody = document.getElementById('itemsTbody');
+    var itemsJsonInput = document.getElementById('itemsJson');
+    var totalLabel = document.getElementById('totalLabel');
+    var compraForm = document.getElementById('compraForm');
+    var lugarSelect = document.getElementById('id_lugar');
+    var initialProductOptionsNode = document.getElementById('initial-product-options');
+    var autocompleteUrl = "{% url 'compras:productos-autocomplete' %}";
+
+    var productoSeleccionadoWrap = document.getElementById('productoSeleccionadoWrap');
+    var productoSeleccionadoBadge = document.getElementById('productoSeleccionadoBadge');
+    var productoSeleccionadoPrecio = document.getElementById('productoSeleccionadoPrecio');
+    var clearProductoSeleccionado = document.getElementById('clearProductoSeleccionado');
+
+    var items = [];
+    var currentOptionsMap = {};
+    var selectedProduct = null;
+    var highlightedSuggestionIndex = -1;
+    var searchDebounce = null;
+    var previousLugarValue = lugarSelect ? lugarSelect.value : '';
+
+    function toNumber(value) {
+      var n = parseFloat(value);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function formatMoney(value) {
+      return toNumber(value).toFixed(2);
+    }
+
+    function saveItemsToHidden() {
+      var payload = items.map(function(item) {
+        return { producto_id: item.producto_id, cantidad: item.cantidad };
+      });
+      itemsJsonInput.value = JSON.stringify(payload);
+    }
+
+    function placeIdOrEmpty() {
+      return lugarSelect && lugarSelect.value ? lugarSelect.value : '';
+    }
+
+    function productLabel(product) {
+      var code = product.codigo ? ('[' + product.codigo + '] ') : '';
+      return code + product.nombre;
+    }
+
+    function rebuildOptionsMap(products) {
+      currentOptionsMap = {};
+      products.forEach(function(p) {
+        currentOptionsMap[String(p.producto_id)] = {
+          producto_id: parseInt(p.producto_id, 10),
+          nombre: productLabel(p),
+          precio: toNumber(p.precio),
+          codigo: p.codigo || ''
+        };
+      });
+    }
+
+    function renderSuggestions(products) {
+      productoSuggestions.innerHTML = '';
+      highlightedSuggestionIndex = -1;
+      if (!products.length) {
+        productoSuggestions.style.display = 'none';
+        return;
+      }
+      products.forEach(function(product) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'list-group-item list-group-item-action py-2';
+        btn.setAttribute('data-producto-id', product.producto_id);
+        btn.innerHTML = '<strong>' + product.codigo + '</strong> ' + product.nombre + ' <span class="float-right">Q' + formatMoney(product.precio) + '</span>';
+        productoSuggestions.appendChild(btn);
+      });
+      productoSuggestions.style.display = 'block';
+    }
+
+    function suggestionButtons() {
+      return Array.prototype.slice.call(
+        productoSuggestions.querySelectorAll('button[data-producto-id]')
+      );
+    }
+
+    function setHighlightedSuggestion(index) {
+      var buttons = suggestionButtons();
+      if (!buttons.length) {
+        highlightedSuggestionIndex = -1;
+        return;
+      }
+      if (index < 0) index = buttons.length - 1;
+      if (index >= buttons.length) index = 0;
+      highlightedSuggestionIndex = index;
+      buttons.forEach(function(btn, i) {
+        if (i === index) {
+          btn.classList.add('active');
+          btn.scrollIntoView({ block: 'nearest' });
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    function selectSuggestionButton(btn) {
+      if (!btn) return false;
+      var pid = btn.getAttribute('data-producto-id');
+      var product = currentOptionsMap[pid];
+      if (!product) return false;
+      selectedProduct = product;
+      productoSearch.value = product.nombre;
+      refreshSelectedProductUI();
+      productoSuggestions.style.display = 'none';
+      highlightedSuggestionIndex = -1;
+      return true;
+    }
+
+    function refreshSelectedProductUI() {
+      if (!productoSeleccionadoWrap) return;
+      if (selectedProduct && selectedProduct.producto_id) {
+        productoSeleccionadoBadge.textContent = selectedProduct.nombre;
+        productoSeleccionadoPrecio.textContent = 'Precio unitario: Q' + formatMoney(selectedProduct.precio);
+        productoSeleccionadoWrap.style.display = 'block';
+      } else {
+        productoSeleccionadoBadge.textContent = '';
+        productoSeleccionadoPrecio.textContent = '';
+        productoSeleccionadoWrap.style.display = 'none';
+      }
+    }
+
+    function fetchProducts(query) {
+      var params = new URLSearchParams();
+      params.set('q', query || '');
+      params.set('lugar_id', placeIdOrEmpty());
+      fetch(autocompleteUrl + '?' + params.toString(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+          var results = Array.isArray(data.results) ? data.results : [];
+          rebuildOptionsMap(results);
+          renderSuggestions(results);
+        })
+        .catch(function() {
+          productoSuggestions.style.display = 'none';
+        });
+    }
+
+    function renderItems() {
+      itemsTbody.innerHTML = '';
+      if (!items.length) {
+        itemsTbody.innerHTML = '<tr id="emptyRow"><td colspan="5" class="text-center text-muted">No hay productos agregados.</td></tr>';
+        totalLabel.textContent = '0.00';
+        saveItemsToHidden();
+        return;
+      }
+
+      var total = 0;
+      items.forEach(function(item) {
+        var subtotal = toNumber(item.cantidad) * toNumber(item.precio);
+        total += subtotal;
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + item.nombre + '</td>' +
+          '<td class="text-right">' + item.cantidad + '</td>' +
+          '<td class="text-right">' + formatMoney(item.precio) + '</td>' +
+          '<td class="text-right">' + formatMoney(subtotal) + '</td>' +
+          '<td><button type="button" class="btn btn-danger btn-sm btn-remove-item" data-producto-id="' + item.producto_id + '"><i class="ti-trash"></i></button></td>';
+        itemsTbody.appendChild(tr);
+      });
+
+      totalLabel.textContent = formatMoney(total);
+      saveItemsToHidden();
+    }
+
+    function addItem() {
+      var cantidad = toNumber(cantidadInput.value);
+      if (!selectedProduct || !selectedProduct.producto_id) {
+        alert('Debe seleccionar un producto.');
+        productoSearch.focus();
+        return;
+      }
+      if (cantidad <= 0) {
+        alert('La cantidad debe ser mayor a 0.');
+        cantidadInput.focus();
+        return;
+      }
+
+      var productoId = selectedProduct.producto_id;
+      var nombre = selectedProduct.nombre;
+      var precio = selectedProduct.precio;
+
+      var existing = items.find(function(it) { return it.producto_id === productoId; });
+      if (existing) {
+        existing.cantidad = toNumber(existing.cantidad) + cantidad;
+      } else {
+        items.push({
+          producto_id: productoId,
+          nombre: nombre,
+          precio: precio,
+          cantidad: cantidad
+        });
+      }
+
+      cantidadInput.value = '1';
+      productoSearch.value = '';
+      selectedProduct = null;
+      refreshSelectedProductUI();
+      productoSuggestions.style.display = 'none';
+      renderItems();
+      productoSearch.focus();
+    }
+
+    productoSearch.addEventListener('input', function() {
+      selectedProduct = null;
+      refreshSelectedProductUI();
+      var query = productoSearch.value.trim();
+      clearTimeout(searchDebounce);
+      if (!query) {
+        productoSuggestions.style.display = 'none';
+        return;
+      }
+      searchDebounce = setTimeout(function() {
+        fetchProducts(query);
+      }, 250);
+    });
+
+    productoSearch.addEventListener('keydown', function(e) {
+      var isOpen = productoSuggestions.style.display === 'block';
+      if (!isOpen) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedSuggestion(highlightedSuggestionIndex + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedSuggestion(highlightedSuggestionIndex - 1);
+      } else if (e.key === 'Enter') {
+        var buttons = suggestionButtons();
+        if (!buttons.length) return;
+        e.preventDefault();
+        var index = highlightedSuggestionIndex >= 0 ? highlightedSuggestionIndex : 0;
+        selectSuggestionButton(buttons[index]);
+      }
+    });
+
+    productoSuggestions.addEventListener('click', function(e) {
+      var btn = e.target.closest('button[data-producto-id]');
+      if (!btn) return;
+      selectSuggestionButton(btn);
+    });
+
+    if (clearProductoSeleccionado) {
+      clearProductoSeleccionado.addEventListener('click', function() {
+        selectedProduct = null;
+        productoSearch.value = '';
+        refreshSelectedProductUI();
+        productoSuggestions.style.display = 'none';
+      });
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!productoSuggestions.contains(e.target) && e.target !== productoSearch) {
+        productoSuggestions.style.display = 'none';
+        highlightedSuggestionIndex = -1;
+      }
+    });
+
+    if (lugarSelect) {
+      lugarSelect.addEventListener('change', function() {
+        if (items.length) {
+          var confirmReset = confirm('Cambiar el lugar limpiará los productos agregados. ¿Desea continuar?');
+          if (!confirmReset) {
+            lugarSelect.value = previousLugarValue;
+            return;
+          }
+        }
+        previousLugarValue = lugarSelect.value;
+        items = [];
+        selectedProduct = null;
+        productoSearch.value = '';
+        refreshSelectedProductUI();
+        productoSuggestions.style.display = 'none';
+        renderItems();
+      });
+    }
+
+    addItemBtn.addEventListener('click', addItem);
+    cantidadInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addItem();
+      }
+    });
+
+    itemsTbody.addEventListener('click', function(e) {
+      var btn = e.target.closest('.btn-remove-item');
+      if (!btn) return;
+      var productoId = parseInt(btn.getAttribute('data-producto-id'), 10);
+      items = items.filter(function(item) { return item.producto_id !== productoId; });
+      renderItems();
+    });
+
+    compraForm.addEventListener('submit', function(e) {
+      if (!items.length) {
+        e.preventDefault();
+        alert('Debe agregar al menos un producto.');
+        return;
+      }
+      saveItemsToHidden();
+    });
+
+    try {
+      var initial = JSON.parse(itemsJsonInput.value || '[]');
+      var initialOptions = [];
+      if (initialProductOptionsNode) {
+        try {
+          initialOptions = JSON.parse(initialProductOptionsNode.textContent || '[]');
+        } catch (_err) {
+          initialOptions = [];
+        }
+      }
+      rebuildOptionsMap(initialOptions);
+      if (Array.isArray(initial) && initial.length) {
+        initial.forEach(function(raw) {
+          var pid = parseInt(raw.producto_id, 10);
+          var cantidad = toNumber(raw.cantidad);
+          if (!pid || cantidad <= 0) return;
+          var product = currentOptionsMap[String(pid)];
+          if (!product) return;
+          var precio = toNumber(product.precio);
+          var nombre = product.nombre;
+          var existing = items.find(function(it) { return it.producto_id === pid; });
+          if (existing) {
+            existing.cantidad = toNumber(existing.cantidad) + cantidad;
+          } else {
+            items.push({ producto_id: pid, nombre: nombre, precio: precio, cantidad: cantidad });
+          }
+        });
+      }
+    } catch (err) {
+      items = [];
+    }
+
+    renderItems();
+    refreshSelectedProductUI();
+  })();
+</script>
+{% endblock %}

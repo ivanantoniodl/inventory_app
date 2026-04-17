@@ -108,13 +108,13 @@
                     <div class="d-flex align-items-center flex-wrap">
                       <h4 class="card-title mb-1 mr-3">Listado de productos</h4>
                       <form method="get" action="{% url 'productos:producto-list' %}" id="formSearchProducto" class="d-inline-flex align-items-center mr-2">
-                        {% if request.GET.lugar %}
-                        <input type="hidden" name="lugar" value="{{ request.GET.lugar }}">
+                        {% if filtro_lugar_id %}
+                        <input type="hidden" name="lugar" value="{{ filtro_lugar_id }}">
                         {% endif %}
                         <input type="text" name="search" id="searchProducto" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ filtro_search }}" style="max-width: 220px;">
                       </form>
-                      <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFiltros" aria-label="Filtros">
-                        Filtros
+                      <button type="button" class="btn btn-outline-secondary btn-sm" id="btnFiltros" aria-label="Lugar">
+                        Lugar
                       </button>
                     </div>
                     <div>
@@ -150,7 +150,7 @@
                 <ul class="pagination justify-content-center">
                   {% if page_obj.has_previous %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Anterior</a>
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtro_lugar_id %}&lugar={{ filtro_lugar_id }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Anterior</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
@@ -165,14 +165,14 @@
                       </li>
                     {% else %}
                       <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">{{ num }}</a>
+                        <a class="page-link" href="?page={{ num }}{% if filtro_lugar_id %}&lugar={{ filtro_lugar_id }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">{{ num }}</a>
                       </li>
                     {% endif %}
                   {% endfor %}
 
                   {% if page_obj.has_next %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.lugar %}&lugar={{ request.GET.lugar }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Siguiente</a>
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtro_lugar_id %}&lugar={{ filtro_lugar_id }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}">Siguiente</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled">
@@ -193,22 +193,24 @@
                   </button>
                 </div>
                 <div class="panel-filtros-body">
-                  <form method="get" action="{% url 'productos:producto-list' %}" id="formFiltros">
-                    <input type="hidden" name="page" value="1">
-                    <div class="form-group">
+                  <div class="form-group">
+                      {% if lugares_filtro %}
                       <label for="filtroLugar">Lugar</label>
-                      <select name="lugar" id="filtroLugar" class="form-control">
-                        <option value="">Todos los lugares</option>
+                      <select name="lugar" id="filtroLugar" class="form-control" disabled>
                         {% for lugar in lugares_filtro %}
-                          <option value="{{ lugar.idLugar }}" {% if filtro_lugar_id %}{% if filtro_lugar_id == lugar.idLugar|stringformat:"d" %}selected{% endif %}{% endif %}>{{ lugar.nombre }}</option>
+                          <option value="{{ lugar.idLugar }}" {% if filtro_lugar_id == lugar.idLugar|stringformat:"d" %}selected{% endif %}>{{ lugar.nombre }}</option>
                         {% endfor %}
                       </select>
-                    </div>
-                    <div class="mt-4">
-                      <button type="submit" class="btn btn-primary mr-2">Aplicar filtro</button>
-                      <a href="{% url 'productos:producto-list' %}" class="btn btn-secondary">Limpiar filtro</a>
-                    </div>
-                  </form>
+                      <small class="form-text text-muted">El listado usa siempre el primer lugar disponible.</small>
+                      {% else %}
+                      <p class="text-warning mb-0">No hay lugares activos configurados.</p>
+                      {% endif %}
+                  </div>
+                  <div class="mt-4">
+                      {% if filtro_search and filtro_lugar_id %}
+                      <a href="{% url 'productos:producto-list' %}?lugar={{ filtro_lugar_id }}&amp;page=1" class="btn btn-secondary">Quitar búsqueda</a>
+                      {% endif %}
+                  </div>
                 </div>
               </div>
             </div>
@@ -273,9 +275,8 @@
                       <div class="form-group border rounded p-2 bg-light" id="crearLugarWrapper">
                         <label for="id_lugar_crear" class="font-weight-bold">Lugar <span class="text-danger">*</span></label>
                         <select name="lugar" id="id_lugar_crear" class="form-control" required>
-                          <option value="">Seleccione un lugar</option>
                           {% for lugar in lugares_filtro %}
-                            <option value="{{ lugar.idLugar }}">{{ lugar.nombre }}</option>
+                            <option value="{{ lugar.idLugar }}" {% if filtro_lugar_id == lugar.idLugar|stringformat:"d" %}selected{% endif %}>{{ lugar.nombre }}</option>
                           {% endfor %}
                         </select>
                         <small class="form-text text-muted">Al crear el producto se registrará en este lugar con existencia 0.</small>
@@ -380,6 +381,7 @@
                 return div.innerHTML
               }
               $(document).ready(function() {
+              var productoListLugarDefault = '{{ filtro_lugar_id|default:""|escapejs }}'
               // Panel Filtros full-screen
               $('#btnFiltros').on('click', function() {
                 $('#panelFiltros').attr('aria-hidden', 'false').css('display', 'flex');
@@ -456,7 +458,7 @@
                   modal.find('#id_proveedor').val('')
                   modal.find('#id_habilitado').prop('checked', true)
                   $('#crearLugarWrapper').css('display', 'block').show()
-                  $('#id_lugar_crear').prop('required', true).val('')
+                  $('#id_lugar_crear').prop('required', true).val(productoListLugarDefault || '')
                   $('#editProductoLugaresWrapper').hide()
                   $('#editProductoLugaresBody').empty()
                 } else if(recipient == 2){
