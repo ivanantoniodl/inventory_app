@@ -1,0 +1,16 @@
+{% for cliente in clientes %}
+<tr>
+  <td>{{ cliente.nombre }} {{ cliente.apellido|default:"" }}</td>
+  <td>{{ cliente.direccion|default:"—" }}</td>
+  <td>{{ cliente.nit|default:"—" }}</td>
+  <td>{% if cliente.activo %}<i class="mdi mdi-check"></i>{% else %}<i class="mdi mdi-close"></i>{% endif %}</td>
+  <td class="text-nowrap">
+    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#crearClienteModal" data-id="2" data-url="{% url 'ventas:cliente-detail' cliente.id %}" data-urlupdate="{% url 'ventas:cliente-update' cliente.id %}"><i class="ti-pencil"></i></button>
+    <button type="button" class="btn btn-danger btn-sm btn-eliminar" data-id="{{ cliente.id }}" data-nombre="{{ cliente.nombre }}"> <i class="ti-trash"></i></button>
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="5" class="text-center">No hay clientes registrados.</td>
+</tr>
+{% endfor %}

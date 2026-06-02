@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-lg-12 grid-margin stretch-card">
+      <div class="card">
+        <div class="col-12 col-xl-12 mb-4 mb-xl-0 card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <div class="d-flex align-items-center flex-wrap">
+              <h4 class="card-title mb-1 mr-3">Listado de clientes</h4>
+              <form method="get" action="{% url 'ventas:cliente-list' %}" id="formSearchClienteVenta" class="d-inline-flex align-items-center mr-2">
+                <input type="text" name="search" id="searchClienteVenta" class="form-control form-control-sm" placeholder="Buscar por nombre..." value="{{ filtro_search }}" style="max-width: 220px;">
+              </form>
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#crearClienteModal" data-id="1">Crear cliente</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead><tr><th>Nombre</th><th>Dirección</th><th>NIT</th><th>Status</th><th>Acciones</th></tr></thead>
+              <tbody id="clientes-venta-tbody">{% include "ventas_clientes_tbody_rows.html" %}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="container mt-5" id="clientes-venta-pagination-wrap">{% include "ventas_clientes_pagination.html" %}</div>
+  </div>
+</div>
+
+<div class="modal fade" id="crearClienteModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form id="clienteVentaForm" method="post" action="">
+        {% csrf_token %}
+        <div class="modal-header"><h5 class="modal-title">Crear cliente</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>
+        <div class="modal-body">
+          <div class="form-group">{{ form.nombre.label_tag }}{{ form.nombre }}</div>
+          <div class="form-group">{{ form.apellido.label_tag }}{{ form.apellido }}</div>
+          <div class="form-group">{{ form.direccion.label_tag }}{{ form.direccion }}</div>
+          <div class="form-group">{{ form.email.label_tag }}{{ form.email }}</div>
+          <div class="form-group">{{ form.nit.label_tag }}{{ form.nit }}</div>
+          <div class="form-group">{{ form.dpi.label_tag }}{{ form.dpi }}</div>
+          <div class="form-check">{{ form.activo }} {{ form.activo.label_tag }}</div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  $(function() {
+    $('#crearClienteModal').on('show.bs.modal', function(event) {
+      var button = $(event.relatedTarget), recipient = button.data('id'), url = button.data('url'), urlUpdate = button.data('urlupdate'), modal = $(this);
+      if (recipient == 1) {
+        modal.find('.modal-title').text('Crear Cliente');
+        modal.find('form').attr('action', "{% url 'ventas:cliente-create' %}");
+        modal.find('#id_nombre, #id_apellido, #id_direccion, #id_email, #id_nit, #id_dpi').val('');
+        modal.find('#id_activo').prop('checked', true);
+      } else {
+        modal.find('.modal-title').text('Editar Cliente');
+        modal.find('form').attr('action', urlUpdate);
+        $.get(url, function(data) {
+          modal.find('#id_nombre').val(data.nombre); modal.find('#id_apellido').val(data.apellido); modal.find('#id_direccion').val(data.direccion);
+          modal.find('#id_email').val(data.email); modal.find('#id_nit').val(data.nit); modal.find('#id_dpi').val(data.dpi); modal.find('#id_activo').prop('checked', data.activo);
+        });
+      }
+    });
+    $('#clienteVentaForm').on('submit', function(e) {
+      e.preventDefault(); var form = $(this);
+      $.ajax({ url: form.attr('action'), type: 'POST', data: form.serialize(), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .done(function(r) { if (r.success) { $('#crearClienteModal').modal('hide'); setTimeout(function(){location.reload();}, 50); } })
+        .fail(function(xhr) { alert(xhr.responseJSON && xhr.responseJSON.errors ? JSON.stringify(xhr.responseJSON.errors) : 'Error al guardar cliente'); });
+    });
+    var deb;
+    function loadClientes(page){ var params={page:page||1},s=$('#searchClienteVenta').val(); if(s) params.search=s; $.ajax({url:"{% url 'ventas:cliente-list' %}", data:params, headers:{'X-Requested-With':'XMLHttpRequest'}}).done(function(d){$('#clientes-venta-tbody').html(d.tbody); $('#clientes-venta-pagination-wrap').html(d.pagination);});}
+    $('#searchClienteVenta').on('input', function(){clearTimeout(deb); deb=setTimeout(function(){loadClientes(1);},300);});
+    $(document).on('click', '#clientes-venta-pagination-wrap .page-link-prev, #clientes-venta-pagination-wrap .page-link-num, #clientes-venta-pagination-wrap .page-link-next', function(e){e.preventDefault(); var p=$(this).data('page'); if(p) loadClientes(p);});
+    $(document).on('click', '.btn-eliminar', function(){ if(confirm('¿Eliminar cliente "'+$(this).data('nombre')+'"?')) window.location.href='/ventas/clientes/delete/'+$(this).data('id')+'/'; });
+  });
+</script>
+{% endblock %}

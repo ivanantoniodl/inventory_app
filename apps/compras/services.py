@@ -1,91 +1,16 @@
-"""
-Lógica de inventario al registrar/anular compras.
-"""
-import socket
+"""Lógica de inventario al registrar/anular compras."""
 
 from django.db import transaction
 from django.utils import timezone
 
-from apps.productos.models import Lote
+from apps.productos import inventory_services
 from apps.productos.models import MovimientoLote
 from apps.productos.models import MovimientoProducto
 
 
-def _resolve_host(request):
-    if request is not None:
-        try:
-            host = (request.get_host() or "")[:45]
-            if host:
-                return host
-        except Exception:
-            pass
-    try:
-        return (socket.gethostname() or "")[:45] or None
-    except Exception:
-        return None
-
-
+@transaction.atomic
 def aplicar_detalle_compra_a_stock(detalle, request):
-    """
-    Tras crear un DetalleCompra:
-    - Crea Lote (sin movimientos automáticos de primer ingreso).
-    - Crea MovimientoProducto vinculado al detalle.
-    - Crea MovimientoLote.
-    - Actualiza existencia del ProductoLugar (ultima_existencia del movimiento = existencia antes del ingreso).
-    """
-    compra = detalle.compra
-    pl = detalle.productolugar
-    cantidad = float(detalle.cantidad or 0)
-    costo = float(detalle.costo or 0)
-
-    # Stock real antes de esta compra (p. ej. ya existía lote inicial vía Primer_Ingreso)
-    pl.refresh_from_db()
-    ultima_antes = float(pl.existencia or 0)
-
-    fecha_ingreso = compra.fechahora.date() if compra.fechahora else None
-
-    lote = Lote(
-        existencia=cantidad,
-        costo=costo,
-        costodescuento=0,
-        fechaingreso=fecha_ingreso,
-        terminado=0,
-        lotetotal=cantidad,
-        fecha_vencimiento=None,
-        productolugar=pl,
-    )
-    lote._skip_movimiento_primer_ingreso = True
-    lote.save()
-
-    factura = (compra.factura or "").strip() or str(compra.pk)
-    motivo = f"Ingreso compra Factura {factura}"
-
-    host = _resolve_host(request)
-
-    mov = MovimientoProducto.objects.create(
-        cant_entrada=cantidad,
-        cant_salida=0,
-        ultima_existencia=ultima_antes,
-        fechahora=compra.fechahora,
-        host=host,
-        motivo=motivo[:255],
-        costo=costo,
-        detalle_compra=detalle,
-        productolugar=pl,
-        detalle_factura_id=None,
-        detalle_salida_id=None,
-    )
-
-    MovimientoLote.objects.create(
-        cant_entrada=cantidad,
-        cant_salida=0,
-        ultima_existencia=0,
-        lote=lote,
-        movimiento_producto=mov,
-    )
-
-    pl.existencia = ultima_antes + cantidad
-    pl.save(update_fields=["existencia"])
+    return inventory_services.registrar_ingreso_compra_detalle(detalle, request=request)
 
 
 @transaction.atomic
@@ -100,19 +25,26 @@ def anular_compra_y_revertir_stock(compra, request=None):
     - Deja el lote anulado/terminado con existencia 0.
     - Resta la existencia del ProductoLugar.
     """
+    compra = compra.__class__.objects.select_for_update().get(pk=compra.pk)
     if compra.anulada:
         return compra
 
-    host = _resolve_host(request)
+    host = inventory_services.resolve_operation_host(request=request)
     ahora = timezone.now()
     factura = (compra.factura or "").strip() or str(compra.pk)
 
-    detalles = compra.detallecompra_set.select_related("productolugar").all().order_by("id")
+    detalles = (
+        compra.detallecompra_set.select_for_update()
+        .select_related("productolugar")
+        .all()
+        .order_by("id")
+    )
     for detalle in detalles:
         cantidad = float(detalle.cantidad or 0)
         costo = float(detalle.costo or 0)
-        pl = detalle.productolugar
-        pl.refresh_from_db()
+        pl = detalle.productolugar.__class__.objects.select_for_update().get(
+            pk=detalle.productolugar_id
+        )
         ultima_antes = float(pl.existencia or 0)
 
         if cantidad <= 0:
@@ -140,7 +72,9 @@ def anular_compra_y_revertir_stock(compra, request=None):
             raise ValueError(
                 f"No se encontró el movimiento de lote para el detalle {detalle.pk}."
             )
-        lote = mov_lote_ingreso.lote
+        lote = mov_lote_ingreso.lote.__class__.objects.select_for_update().get(
+            pk=mov_lote_ingreso.lote_id
+        )
 
         mov_salida = MovimientoProducto.objects.create(
             cant_entrada=0,
